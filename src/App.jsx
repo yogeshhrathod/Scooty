@@ -1,0 +1,42 @@
+import React from 'react';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { Layout } from './components/Layout';
+import { Home } from './pages/Home';
+import { Library } from './pages/Library';
+import { Player } from './pages/Player';
+import { Settings } from './pages/Settings';
+import { Details } from './pages/Details';
+
+function AnimatedRoutes() {
+  const location = useLocation();
+  // We can add AnimatePresence here later for route transitions
+  return (
+    <Routes location={location} key={location.pathname}>
+      <Route path="/" element={<Home />} />
+      <Route path="/library" element={<Library />} />
+      <Route path="/movies" element={<Home />} />{/* Reuse Home for Demo */}
+      <Route path="/settings" element={<Settings />} />
+      <Route path="/details/:id" element={<Details />} />
+    </Routes>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* Player is standalone (no sidebar) */}
+        <Route path="/play/:id" element={<Player />} />
+
+        {/* Main Layout routes */}
+        <Route path="/*" element={
+          <Layout>
+            <AnimatedRoutes />
+          </Layout>
+        } />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+export default App;

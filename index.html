@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en" class="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/png" href="/logo.png" />
+  <link rel="apple-touch-icon" href="/logo.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="A powerful cross-platform media player for all your videos, movies, and shows." />
+  <title>Infuse Clone - Ultimate Media Player</title>
+  <style>
+    body {
+      background-color: #000000;
+      margin: 0;
+      overflow: hidden;
+      /* Prevent scroll on splash */
+    }
+
+    .splash-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background-color: #000000;
+      z-index: 9999;
+    }
+
+    .splash-logo {
+      width: 120px;
+      height: 120px;
+      object-fit: cover;
+      border-radius: 20%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        opacity: 0.8;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: 1;
+        transform: scale(1.05);
+      }
+
+      100% {
+        opacity: 0.8;
+        transform: scale(1);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root">
+    <!-- Initial Splash Screen (Replaced by React) -->
+    <div class="splash-container">
+      <img src="/logo.png" alt="Scooty" class="splash-logo" />
+    </div>
+  </div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
+</html>

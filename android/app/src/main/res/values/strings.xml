@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">InfuseClone</string>
+    <string name="title_activity_main">InfuseClone</string>
+    <string name="package_name">com.infuse.clone</string>
+    <string name="custom_url_scheme">com.infuse.clone</string>
+</resources>
