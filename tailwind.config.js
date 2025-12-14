@@ -83,6 +83,10 @@ export default {
                     },
                 },
             },
+            screens: {
+                '3xl': '1920px',
+                '4k': '2560px',
+            },
         },
     },
     plugins: [

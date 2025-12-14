@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { cn } from "../../lib/utils";
 
@@ -11,6 +11,18 @@ export const Tabs = ({
 }) => {
     const [active, setActive] = useState(propTabs[0]);
     const [tabs, setTabs] = useState(propTabs);
+
+    // Sync tabs with propTabs when they change (e.g., when parent re-renders with new data)
+    useEffect(() => {
+        setTabs(propTabs);
+        // Keep the same active tab if it still exists, otherwise default to first
+        const activeStillExists = propTabs.find(t => t.value === active.value);
+        if (activeStillExists) {
+            setActive(activeStillExists);
+        } else {
+            setActive(propTabs[0]);
+        }
+    }, [propTabs]);
 
     const moveSelectedTabToTop = (idx) => {
         const newTabs = [...propTabs];

@@ -28,7 +28,9 @@ import {
     Shield,
     CheckCircle2,
     AlertCircle,
-    Loader2
+
+    Loader2,
+    Plus
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useStore } from '../store/useStore';
@@ -44,9 +46,12 @@ export const Settings = () => {
     const ftpSources = useStore((state) => state.ftpSources) || [];
     const removeFolder = useStore((state) => state.removeFolder);
     const removeFtpSource = useStore((state) => state.removeFtpSource);
+    const addToLibrary = useStore((state) => state.addToLibrary);
+    const addFolder = useStore((state) => state.addFolder);
 
     // Local UI State
     const [isSyncing, setIsSyncing] = useState(false);
+
     const [theme, setTheme] = useState('dark');
     const [confirmAction, setConfirmAction] = useState(null); // { type: 'clear_lib', title: 'Start Fresh?' }
 
@@ -54,6 +59,9 @@ export const Settings = () => {
     const [autoPlay, setAutoPlay] = useState(true);
     const [hardwareAccel, setHardwareAccel] = useState(true);
     const [defLang, setDefLang] = useState('English');
+
+    // Check if running in Electron
+    const isElectron = typeof window !== 'undefined' && window.require;
 
     const handleResync = async () => {
         setIsSyncing(true);
@@ -86,6 +94,46 @@ export const Settings = () => {
         const k = 1024;
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + ['B', 'KB', 'MB', 'GB', 'TB'][i];
+    };
+
+    // Use Electron's native dialog and IPC for folder selection (no "uploading")
+    const handleAddLocalFolder = async () => {
+        if (!isElectron) {
+            console.warn('[Settings] Not running in Electron, cannot use native dialog.');
+            return;
+        }
+
+        const { ipcRenderer } = window.require('electron');
+
+        try {
+            setIsSyncing(true);
+
+            // 1. Open native folder picker dialog
+            const folderPath = await ipcRenderer.invoke('open-directory');
+            if (!folderPath) {
+                setIsSyncing(false);
+                return; // User cancelled
+            }
+
+            console.log('[Settings] Selected folder:', folderPath);
+
+            // 2. Add folder to sources list
+            addFolder(folderPath);
+
+            // 3. Scan the directory for media files via IPC
+            const mediaFiles = await ipcRenderer.invoke('scan-directory', folderPath);
+            console.log('[Settings] Scanned files:', mediaFiles.length);
+
+            // 4. Add scanned files to library (will trigger metadata identification)
+            if (mediaFiles.length > 0) {
+                await addToLibrary(mediaFiles);
+            }
+
+            setIsSyncing(false);
+        } catch (err) {
+            console.error('[Settings] Error adding folder:', err);
+            setIsSyncing(false);
+        }
     };
 
     const tabs = [
@@ -130,6 +178,16 @@ export const Settings = () => {
                                 {ftpSources.map((f) => (
                                     <SourceRow key={f.id} icon={Globe} label={`${f.user}@${f.host}`} type="FTP Server" onDelete={() => removeFtpSource(f.id)} />
                                 ))}
+                                <div className="p-4 border-t border-white/5">
+                                    <button
+                                        onClick={handleAddLocalFolder}
+                                        disabled={isSyncing}
+                                        className="w-full py-3 border border-dashed border-neutral-300 dark:border-white/10 rounded-xl text-neutral-500 hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all flex items-center justify-center gap-2 font-medium disabled:opacity-50 disabled:pointer-events-none"
+                                    >
+                                        <Plus className="w-5 h-5" />
+                                        {isSyncing ? 'Scanning...' : 'Add Local Folder'}
+                                    </button>
+                                </div>
                             </SettingsSection>
                         </div>
 

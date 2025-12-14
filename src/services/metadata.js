@@ -109,9 +109,8 @@ export const metadataService = {
                         title: episodeData.name || match.name, // Use Episode name if available, else Show name
                         showTitle: match.name,
                         overview: episodeData.overview || match.overview,
-                        poster_path: episodeData.still_path
-                            ? `https://image.tmdb.org/t/p/w500${episodeData.still_path}`
-                            : (match.poster_path ? `https://image.tmdb.org/t/p/w500${match.poster_path}` : null),
+                        poster_path: match.poster_path ? `https://image.tmdb.org/t/p/w500${match.poster_path}` : null,
+                        still_path: episodeData.still_path ? `https://image.tmdb.org/t/p/w500${episodeData.still_path}` : null,
                         backdrop_path: match.backdrop_path ? `https://image.tmdb.org/t/p/original${match.backdrop_path}` : null,
                         release_date: episodeData.air_date || match.first_air_date,
                         year: year || (match.first_air_date ? match.first_air_date.substring(0, 4) : null),

@@ -31,11 +31,35 @@ function createWindow() {
 
 const ftpService = require('./electron/FtpService');
 const streamProxy = require('./electron/StreamProxy');
+const mediaInfoService = require('./electron/MediaInfoService');
 
 // Start Proxy
 let proxyPort = null;
 app.whenReady().then(async () => {
     proxyPort = await streamProxy.start();
+});
+
+// IPC Handler for getting media info
+ipcMain.handle('get-media-info', async (event, filePath) => {
+    try {
+        const info = await mediaInfoService.getMediaInfo(filePath);
+
+        // Add display names to tracks
+        info.audioTracks = info.audioTracks.map(track => ({
+            ...track,
+            displayName: mediaInfoService.getTrackDisplayName(track),
+        }));
+
+        info.subtitleTracks = info.subtitleTracks.map(track => ({
+            ...track,
+            displayName: mediaInfoService.getTrackDisplayName(track),
+        }));
+
+        return info;
+    } catch (e) {
+        console.error('Error getting media info:', e);
+        throw e;
+    }
 });
 
 // IPC Handlers for Local File Access
@@ -75,28 +99,50 @@ ipcMain.handle('get-stream-url', () => {
     return `http://localhost:${proxyPort}`;
 });
 
-async function scanDir(dir) {
+async function scanDir(dir, depth = 0) {
     let results = [];
-    const list = fs.readdirSync(dir);
-    for (const file of list) {
-        try {
-            const filePath = path.resolve(dir, file);
-            const stat = fs.statSync(filePath);
-            if (stat && stat.isDirectory()) {
-                results = results.concat(await scanDir(filePath));
-            } else {
-                // Check for video extensions
-                if (/\.(mkv|mp4|avi|mov|wmv)$/i.test(file)) {
-                    results.push({
-                        name: file,
-                        path: filePath, // Absolute path
-                        size: stat.size,
-                        type: 'video'
-                    });
+    const indent = '  '.repeat(depth);
+
+    try {
+        const list = fs.readdirSync(dir);
+        console.log(`${indent}[Scan] Scanning: ${dir} (${list.length} items)`);
+
+        for (const file of list) {
+            // Skip hidden files/folders (optional, remove if you want to include them)
+            if (file.startsWith('.')) continue;
+
+            try {
+                const filePath = path.resolve(dir, file);
+                const stat = fs.statSync(filePath);
+
+                if (stat && stat.isDirectory()) {
+                    // Recursively scan subdirectories
+                    const nestedFiles = await scanDir(filePath, depth + 1);
+                    results = results.concat(nestedFiles);
+                } else if (stat && stat.isFile()) {
+                    // Check for video extensions
+                    if (/\.(mkv|mp4|avi|mov|wmv|m4v|webm|flv|m2ts|ts)$/i.test(file)) {
+                        console.log(`${indent}  [Found] ${file}`);
+                        results.push({
+                            name: file,
+                            path: filePath,
+                            size: stat.size,
+                            type: 'video'
+                        });
+                    }
                 }
+            } catch (fileErr) {
+                console.warn(`${indent}  [Skip] ${file}: ${fileErr.message}`);
             }
-        } catch (e) { /* ignore access errors */ }
+        }
+    } catch (dirErr) {
+        console.error(`[Scan Error] Cannot read directory ${dir}: ${dirErr.message}`);
     }
+
+    if (depth === 0) {
+        console.log(`[Scan Complete] Found ${results.length} media files in ${dir}`);
+    }
+
     return results;
 }
 

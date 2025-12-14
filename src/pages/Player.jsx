@@ -1,44 +1,189 @@
-import React from 'react';
-import ReactPlayer from 'react-player';
-import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
+import { VideoPlayer } from '../components/VideoPlayer';
+
+// Check if we're in Electron environment
+const isElectron = typeof window !== 'undefined' && window.require;
+const ipcRenderer = isElectron ? window.require('electron').ipcRenderer : null;
 
 export const Player = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
 
-    // In a real app, resolve 'id' (or path) to a playable URL.
-    // Since this is a specialized electron app for local files, we might play directly from file:// path.
-    // Or if it's an HTTP stream (FTP proxy), use localhost URL.
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [streamUrl, setStreamUrl] = useState('');
+    const [streamBaseUrl, setStreamBaseUrl] = useState('');
+    const [mediaInfo, setMediaInfo] = useState(null);
+    const [selectedAudioTrack, setSelectedAudioTrack] = useState(null);
 
-    // For demo/mock:
-    // If id has http, use it. If it's a file path, we might need a custom protocol or just raw file (electron supports it with webSecurity: false usually).
+    // Track if we've initialized to prevent re-runs
+    const initializedRef = useRef(false);
 
-    const url = decodeURIComponent(id);
+    // Decode the file path from URL
+    const filePath = decodeURIComponent(id || '');
+    const title = searchParams.get('title') || filePath.split('/').pop() || 'Video';
     const isMock = id === 'mock' || !id;
-    const playUrl = isMock ? 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8' : url;
+
+    // Initialize player (runs once)
+    useEffect(() => {
+        // Prevent double initialization (React StrictMode)
+        if (initializedRef.current) return;
+        initializedRef.current = true;
+
+        const initializePlayer = async () => {
+            if (isMock) {
+                // For demo/mock, use a sample HLS stream
+                setStreamUrl('https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8');
+                setIsLoading(false);
+                return;
+            }
+
+            if (!isElectron) {
+                // Fallback for browser testing (non-Electron)
+                setStreamUrl(filePath);
+                setIsLoading(false);
+                return;
+            }
+
+            try {
+                // Get the stream proxy base URL
+                const baseUrl = await ipcRenderer.invoke('get-stream-url');
+                setStreamBaseUrl(baseUrl);
+
+                // Check if it's an MKV file
+                const isMkv = filePath.toLowerCase().endsWith('.mkv');
+
+                // Get media info for all video files (duration, audio tracks, subtitles)
+                let info = null;
+                let defaultAudioTrackIndex = null;
+
+                try {
+                    info = await ipcRenderer.invoke('get-media-info', filePath);
+                    setMediaInfo(info);
+                    console.log('[Player] Media info:', info);
+
+                    // Find default audio track
+                    const defaultAudio = info.audioTracks?.find(t => t.default) || info.audioTracks?.[0];
+                    if (defaultAudio) {
+                        defaultAudioTrackIndex = defaultAudio.index;
+                        setSelectedAudioTrack(defaultAudioTrackIndex);
+                    }
+                } catch (infoErr) {
+                    console.warn('[Player] Could not get media info:', infoErr);
+                    // Continue anyway - we can still play the file
+                }
+
+                // Build the stream URL
+                let url;
+                if (isMkv) {
+                    // MKV files go through the stream proxy for transcoding
+                    const streamParams = new URLSearchParams({
+                        file: filePath,
+                    });
+
+                    // Use the default audio track we just found
+                    if (defaultAudioTrackIndex !== null && defaultAudioTrackIndex !== undefined) {
+                        streamParams.append('audio', defaultAudioTrackIndex);
+                    }
+
+                    url = `${baseUrl}/stream?${streamParams.toString()}`;
+                } else {
+                    // Non-MKV files can be played directly via file:// protocol in Electron
+                    // Or through the stream proxy for remote/FTP files
+                    if (filePath.startsWith('/') || filePath.match(/^[A-Z]:\\/i)) {
+                        // Local file - use file:// protocol directly
+                        url = `file://${filePath}`;
+                    } else {
+                        // Remote file - use stream proxy
+                        const streamParams = new URLSearchParams({
+                            file: filePath,
+                        });
+                        url = `${baseUrl}/stream?${streamParams.toString()}`;
+                    }
+                }
+
+                console.log('[Player] Stream URL:', url);
+                setStreamUrl(url);
+
+            } catch (err) {
+                console.error('[Player] Initialization error:', err);
+                setError(err.message || 'Failed to initialize player');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        initializePlayer();
+    }, [filePath, isMock]); // Only depend on filePath and isMock
+
+    // Handle audio track change (for MKV, this requires rebuilding the stream URL)
+    const handleAudioTrackChange = useCallback((trackIndex) => {
+        if (!streamBaseUrl || trackIndex === selectedAudioTrack) return;
+
+        setSelectedAudioTrack(trackIndex);
+
+        // Rebuild stream URL with new audio track
+        const streamParams = new URLSearchParams({
+            file: filePath,
+            audio: trackIndex,
+        });
+
+        const url = `${streamBaseUrl}/stream?${streamParams.toString()}`;
+        console.log('[Player] Switching audio track, new URL:', url);
+        setStreamUrl(url);
+    }, [filePath, streamBaseUrl, selectedAudioTrack]);
+
+    // Handle back navigation
+    const handleBack = () => {
+        navigate(-1);
+    };
+
+    // Loading state
+    if (isLoading) {
+        return (
+            <div className="w-screen h-screen bg-black flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="w-12 h-12 text-orange-500 animate-spin" />
+                    <p className="text-white/70 text-sm">Loading media...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Error state
+    if (error) {
+        return (
+            <div className="w-screen h-screen bg-black flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4 text-center px-8">
+                    <p className="text-red-400 text-lg">{error}</p>
+                    <button
+                        onClick={handleBack}
+                        className="px-6 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
+                    >
+                        Go Back
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
-        <div className="w-screen h-screen bg-black relative">
-            <button
-                onClick={() => navigate(-1)}
-                className="absolute top-4 left-4 z-50 p-2 bg-black/50 rounded-full text-white hover:bg-white/20 transition-colors"
-            >
-                <ArrowLeft className="w-6 h-6" />
-            </button>
-
-            <ReactPlayer
-                url={playUrl}
-                width="100%"
-                height="100%"
-                controls={true}
-                playing={true}
-                config={{
-                    file: {
-                        forceHLS: true,
-                    }
-                }}
+        <div className="w-screen h-screen bg-black">
+            <VideoPlayer
+                src={streamUrl}
+                title={title}
+                onBack={handleBack}
+                autoPlay={true}
+                mediaInfo={mediaInfo}
+                streamBaseUrl={streamBaseUrl}
+                originalFilePath={filePath}
+                onAudioTrackChange={handleAudioTrackChange}
             />
         </div>
     );
 };
+
+export default Player;

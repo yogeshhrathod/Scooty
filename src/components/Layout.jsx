@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Home, Film, Folder, Settings, Search, LogOut } from 'lucide-react';
+import { Home, Film, Tv, Folder, Settings, Search, LogOut } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Sidebar, SidebarBody, SidebarLink } from './ui/sidebar';
 import { Input } from './ui/input';
@@ -96,6 +96,7 @@ export const Layout = ({ children }) => {
     const links = [
         { label: 'Home', href: '/', icon: <Home className="h-5 w-5 flex-shrink-0" /> },
         { label: 'Movies', href: '/movies', icon: <Film className="h-5 w-5 flex-shrink-0" /> },
+        { label: 'TV Shows', href: '/tv', icon: <Tv className="h-5 w-5 flex-shrink-0" /> },
         { label: 'Library', href: '/library', icon: <Folder className="h-5 w-5 flex-shrink-0" /> },
         { label: 'Settings', href: '/settings', icon: <Settings className="h-5 w-5 flex-shrink-0" /> },
     ];
@@ -144,7 +145,7 @@ export const Layout = ({ children }) => {
 
             <main className="flex-1 flex flex-col h-full relative overflow-y-auto">
                 <TitleBar />
-                <div className="p-4 md:p-8 animate-in fade-in duration-500 max-w-[1920px] mx-auto w-full">
+                <div className="p-4 md:p-8 lg:px-12 xl:px-16 2xl:px-20 animate-in fade-in duration-500 w-full">
                     {children}
                 </div>
             </main>

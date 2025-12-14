@@ -3,9 +3,12 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { Home } from './pages/Home';
 import { Library } from './pages/Library';
+import { Movies } from './pages/Movies';
 import { Player } from './pages/Player';
 import { Settings } from './pages/Settings';
 import { Details } from './pages/Details';
+import { TvShows } from './pages/TvShows';
+import { TvShowDetails } from './pages/TvShowDetails';
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -14,7 +17,9 @@ function AnimatedRoutes() {
     <Routes location={location} key={location.pathname}>
       <Route path="/" element={<Home />} />
       <Route path="/library" element={<Library />} />
-      <Route path="/movies" element={<Home />} />{/* Reuse Home for Demo */}
+      <Route path="/movies" element={<Movies />} />
+      <Route path="/tv" element={<TvShows />} />
+      <Route path="/tv/:showId" element={<TvShowDetails />} />
       <Route path="/settings" element={<Settings />} />
       <Route path="/details/:id" element={<Details />} />
     </Routes>
@@ -40,3 +45,4 @@ function App() {
 }
 
 export default App;
+
