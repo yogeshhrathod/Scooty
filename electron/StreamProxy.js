@@ -198,18 +198,20 @@ class StreamProxy {
                     // Video Codec Selection
                     if (isMac) {
                         // MacOS Hardware Acceleration (Very fast seeking & encoding)
-                        // Transcoding to H.264 ensures maximum browser compatibility 
                         outputOptions.push('-c:v h264_videotoolbox');
-                        outputOptions.push('-b:v 5000k'); // High bitrate for quality
-                        outputOptions.push('-realtime true'); // Optimize for real-time
+                        outputOptions.push('-b:v 35000k');
+                        outputOptions.push('-realtime true');
                     } else {
-                        // Fallback for non-Mac (or try copy if transcoding is too heavy)
-                        // But for sync, libx264 is safer if CPU allows. 
-                        // Let's stick to copy for safety on unknown low-end devices, 
-                        // OR use ultrafast preset.
+                        // Universal Fallback (Windows/Linux)
+                        // Use libx264 with 'ultrafast' preset. 
+                        // 'ultrafast' is extremely efficient and allows 4K real-time encoding on decent CPUs.
+                        // We KEEP original resolution (4K) to support powerful PCs.
                         outputOptions.push('-c:v libx264');
                         outputOptions.push('-preset ultrafast');
                         outputOptions.push('-tune zerolatency');
+                        outputOptions.push('-b:v 35000k'); // Maintain high bitrate for quality
+                        outputOptions.push('-maxrate 35000k');
+                        outputOptions.push('-bufsize 70000k');
                     }
 
                     // Map specific audio track
