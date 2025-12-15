@@ -119,22 +119,8 @@ export const Player = () => {
         initializePlayer();
     }, [filePath, isMock]); // Only depend on filePath and isMock
 
-    // Handle audio track change (for MKV, this requires rebuilding the stream URL)
-    const handleAudioTrackChange = useCallback((trackIndex) => {
-        if (!streamBaseUrl || trackIndex === selectedAudioTrack) return;
-
-        setSelectedAudioTrack(trackIndex);
-
-        // Rebuild stream URL with new audio track
-        const streamParams = new URLSearchParams({
-            file: filePath,
-            audio: trackIndex,
-        });
-
-        const url = `${streamBaseUrl}/stream?${streamParams.toString()}`;
-        console.log('[Player] Switching audio track, new URL:', url);
-        setStreamUrl(url);
-    }, [filePath, streamBaseUrl, selectedAudioTrack]);
+    // Audio track changes are now handled internally by VideoPlayer
+    // No need for Player to rebuild URLs
 
     // Handle back navigation
     const handleBack = () => {
@@ -180,7 +166,6 @@ export const Player = () => {
                 mediaInfo={mediaInfo}
                 streamBaseUrl={streamBaseUrl}
                 originalFilePath={filePath}
-                onAudioTrackChange={handleAudioTrackChange}
             />
         </div>
     );

@@ -94,3 +94,34 @@
         @apply bg-muted-foreground;
     }
 }
+
+@layer utilities {
+
+    /* Hide scrollbar utility */
+    .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+/* Video Player Subtitle Styling */
+video::cue {
+    font-size: 1.5rem;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: white;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
+    line-height: normal;
+}
+
+/* Lift subtitles container to avoid overlap with custom controls */
+video::-webkit-media-text-track-display {
+    transform: translateY(-80px) !important;
+}
+
+video::-webkit-media-text-track-container {
+    overflow: visible !important;
+}

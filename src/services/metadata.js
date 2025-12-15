@@ -89,9 +89,30 @@ export const metadataService = {
                     match = res.data.results[0];
                     console.log(`[Metadata] Found TV Match: ${match.name} (ID: ${match.id})`);
 
-                    // Ideally we fetch specific episode details here, but for now getting Show details + Season poster
-                    // If we want exact episode metadata, we need: /tv/{series_id}/season/{season_number}/episode/{episode_number}
-                    // Let's try to get specific episode info if we have S/E
+                    // Fetch TV show details and credits
+                    let showDetails = {};
+                    let showCredits = {};
+                    try {
+                        const [detailsRes, creditsRes] = await Promise.all([
+                            axios.get(`${BASE_URL}/tv/${match.id}?api_key=${API_KEY}`),
+                            axios.get(`${BASE_URL}/tv/${match.id}/credits?api_key=${API_KEY}`)
+                        ]);
+                        showDetails = detailsRes.data;
+                        showCredits = creditsRes.data;
+                    } catch (err) {
+                        console.warn(`[Metadata] Failed to fetch TV show details: ${err.message}`);
+                    }
+
+                    // Get detailed cast info with profile photos
+                    const castWithPhotos = (showCredits.cast || []).slice(0, 10).map(c => ({
+                        id: c.id,
+                        name: c.name,
+                        character: c.character,
+                        profile_path: c.profile_path ? `https://image.tmdb.org/t/p/w185${c.profile_path}` : null,
+                        order: c.order
+                    }));
+
+                    // Get episode-specific data if available
                     let episodeData = {};
                     if (season && episode) {
                         try {
@@ -106,8 +127,9 @@ export const metadataService = {
                     return {
                         ...file,
                         tmdbId: match.id,
-                        title: episodeData.name || match.name, // Use Episode name if available, else Show name
+                        title: episodeData.name || match.name,
                         showTitle: match.name,
+                        tagline: showDetails.tagline,
                         overview: episodeData.overview || match.overview,
                         poster_path: match.poster_path ? `https://image.tmdb.org/t/p/w500${match.poster_path}` : null,
                         still_path: episodeData.still_path ? `https://image.tmdb.org/t/p/w500${episodeData.still_path}` : null,
@@ -115,6 +137,13 @@ export const metadataService = {
                         release_date: episodeData.air_date || match.first_air_date,
                         year: year || (match.first_air_date ? match.first_air_date.substring(0, 4) : null),
                         vote_average: episodeData.vote_average || match.vote_average,
+                        genres: (showDetails.genres || []).map(g => g.name),
+                        cast: (showCredits.cast || []).slice(0, 5).map(c => c.name),
+                        castDetails: castWithPhotos,
+                        networks: (showDetails.networks || []).slice(0, 2).map(n => n.name),
+                        created_by: (showDetails.created_by || []).slice(0, 2).map(c => c.name),
+                        number_of_seasons: showDetails.number_of_seasons,
+                        number_of_episodes: showDetails.number_of_episodes,
                         type: 'tv',
                         season,
                         episode,
@@ -147,10 +176,23 @@ export const metadataService = {
                         axios.get(`${BASE_URL}/movie/${match.id}/credits?api_key=${API_KEY}`)
                     ]);
 
+                    // Extract director from crew
+                    const director = credits.data.crew.find(c => c.job === 'Director');
+
+                    // Get detailed cast info with profile photos
+                    const castWithPhotos = credits.data.cast.slice(0, 10).map(c => ({
+                        id: c.id,
+                        name: c.name,
+                        character: c.character,
+                        profile_path: c.profile_path ? `https://image.tmdb.org/t/p/w185${c.profile_path}` : null,
+                        order: c.order
+                    }));
+
                     return {
                         ...file,
                         tmdbId: match.id,
                         title: match.title,
+                        tagline: details.data.tagline,
                         overview: match.overview,
                         poster_path: match.poster_path ? `https://image.tmdb.org/t/p/w500${match.poster_path}` : null,
                         backdrop_path: match.backdrop_path ? `https://image.tmdb.org/t/p/original${match.backdrop_path}` : null,
@@ -159,7 +201,13 @@ export const metadataService = {
                         vote_average: match.vote_average,
                         runtime: details.data.runtime,
                         cast: credits.data.cast.slice(0, 5).map(c => c.name),
+                        castDetails: castWithPhotos,
+                        director: director ? director.name : null,
                         genres: details.data.genres.map(g => g.name),
+                        production_companies: details.data.production_companies.slice(0, 2).map(c => c.name),
+                        budget: details.data.budget,
+                        revenue: details.data.revenue,
+                        status: details.data.status,
                         type: 'movie',
                         identified: true
                     };

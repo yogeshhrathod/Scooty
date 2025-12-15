@@ -90,7 +90,8 @@ class MediaInfoService {
                 console.log('[MediaInfo] Parsed info for:', path.basename(filePath));
                 console.log(`  - Duration: ${info.duration}s`);
                 console.log(`  - ${info.videoTracks.length} video tracks`);
-                console.log(`  - ${info.audioTracks.length} audio tracks`);
+                console.log(`  - ${info.audioTracks.length} audio tracks:`);
+                info.audioTracks.forEach(t => console.log(`    - Audio track index ${t.index}: ${t.language} ${t.codec}`));
                 console.log(`  - ${info.subtitleTracks.length} subtitle tracks`);
 
                 resolve(info);

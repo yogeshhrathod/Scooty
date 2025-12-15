@@ -65,6 +65,7 @@ class StreamProxy {
         this.app.get('/subtitle', async (req, res) => {
             const filePath = req.query.file;
             const trackIndex = parseInt(req.query.track, 10);
+            const startTime = parseFloat(req.query.start || 0);
 
             if (!filePath || isNaN(trackIndex)) {
                 return res.status(400).send('Missing file or track parameter');
@@ -84,7 +85,13 @@ class StreamProxy {
                 res.setHeader('Content-Type', 'text/vtt');
                 res.setHeader('Access-Control-Allow-Origin', '*');
 
-                const content = fs.readFileSync(vttPath, 'utf8');
+                let content = fs.readFileSync(vttPath, 'utf8');
+
+                // Adjust timestamps if seeking (startTime > 0)
+                if (startTime > 0) {
+                    content = this.adjustSubtitleTimestamps(content, startTime);
+                }
+
                 res.send(content);
             } catch (err) {
                 console.error('[StreamProxy] Subtitle extraction error:', err.message);
@@ -167,25 +174,52 @@ class StreamProxy {
                 }
 
                 if (command) {
-                    // Build output options
-                    // Using copy mode for video - if the codec (H.265/HEVC) isn't supported,
-                    // the browser will show an error. Full transcoding to H.264 is too slow
-                    // for real-time playback. Consider using hardware acceleration in the future.
-                    const outputOptions = [
-                        '-movflags frag_keyframe+empty_moov+default_base_moof', // fragmented mp4 for streaming
-                        '-c:v copy', // copy video (fast) - works for H.264, may fail for HEVC in browsers
-                        '-c:a aac',  // transcode audio to aac (safe for web)
-                        '-b:a 192k',
-                        '-ac 2',     // Stereo output for web compatibility
+                    const isMac = process.platform === 'darwin';
+
+                    // Hardware Acceleration & Transcoding Options
+                    // Transcoding solves the keyframe-snap issue, ensuring perfect sync for Audio/Video/Subtitles
+                    const inputOptions = [
+                        '-fflags +discardcorrupt',
                     ];
 
-                    // Map specific audio track if requested
+                    if (isMac) {
+                        inputOptions.push('-hwaccel videotoolbox'); // Hardware decoding
+                    }
+
+                    const outputOptions = [
+                        '-movflags frag_keyframe+empty_moov+default_base_moof+faststart',
+                        '-max_muxing_queue_size 9999',
+                        '-reset_timestamps 1', // Reset timestamps to 0
+                        '-c:a aac',
+                        '-b:a 192k',
+                        '-ac 2',
+                    ];
+
+                    // Video Codec Selection
+                    if (isMac) {
+                        // MacOS Hardware Acceleration (Very fast seeking & encoding)
+                        // Transcoding to H.264 ensures maximum browser compatibility 
+                        outputOptions.push('-c:v h264_videotoolbox');
+                        outputOptions.push('-b:v 5000k'); // High bitrate for quality
+                        outputOptions.push('-realtime true'); // Optimize for real-time
+                    } else {
+                        // Fallback for non-Mac (or try copy if transcoding is too heavy)
+                        // But for sync, libx264 is safer if CPU allows. 
+                        // Let's stick to copy for safety on unknown low-end devices, 
+                        // OR use ultrafast preset.
+                        outputOptions.push('-c:v libx264');
+                        outputOptions.push('-preset ultrafast');
+                        outputOptions.push('-tune zerolatency');
+                    }
+
+                    // Map specific audio track
                     if (!isNaN(audioTrack) && audioTrack >= 0) {
-                        outputOptions.unshift(`-map 0:v:0`); // First video stream
-                        outputOptions.unshift(`-map 0:${audioTrack}`); // Specific audio track
+                        outputOptions.unshift(`-map 0:${audioTrack}`);
+                        outputOptions.unshift(`-map 0:v:0`);
                     }
 
                     command
+                        .inputOptions(inputOptions)
                         .seekInput(startTime)
                         .outputOptions(outputOptions)
                         .format('mp4')
@@ -193,16 +227,13 @@ class StreamProxy {
                             console.log('[StreamProxy] FFmpeg command:', cmd);
                         })
                         .on('stderr', (stderrLine) => {
-                            // Log FFmpeg progress (frame info, speed, etc.)
                             if (stderrLine.includes('frame=') || stderrLine.includes('speed=')) {
                                 console.log('[StreamProxy] FFmpeg:', stderrLine);
                             }
                         })
                         .on('error', (err) => {
-                            // Don't log "killed" errors as they're expected when client disconnects
-                            if (!err.message.includes('SIGKILL')) {
-                                console.error('[StreamProxy] FFmpeg Error:', err.message);
-                            }
+                            if (err.message.includes('SIGKILL')) return;
+                            console.error('[StreamProxy] FFmpeg Error:', err.message);
                             if (!res.headersSent) {
                                 res.status(500).send("Transcoding Error: " + err.message);
                             } else {
@@ -219,8 +250,9 @@ class StreamProxy {
                         console.log('[StreamProxy] Client disconnected, killing ffmpeg.');
                         command.kill('SIGKILL');
                     });
+
+                    return;
                 }
-                return;
             }
 
             // Standard HTTP Range Stream for FTP (MP4 / Direct Play)
@@ -330,6 +362,45 @@ class StreamProxy {
 
     getPort() {
         return this.port;
+    }
+
+    /**
+     * Adjust VTT subtitle timestamps by subtracting the start offset
+     */
+    adjustSubtitleTimestamps(vttContent, offsetSeconds) {
+        // Robust Regex for VTT timestamps:
+        // Supports: HH:MM:SS.mmm, MM:SS.mmm, with dot or comma
+        const timestampRegex = /((?:\d{2}:)?\d{2}:\d{2}(?:[.,]\d{3})?)\s*-->\s*((?:\d{2}:)?\d{2}:\d{2}(?:[.,]\d{3})?)/g;
+
+        const parseTime = (timeStr) => {
+            const parts = timeStr.replace(',', '.').split(':');
+            let seconds = 0;
+            if (parts.length === 3) {
+                seconds = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseFloat(parts[2]);
+            } else if (parts.length === 2) {
+                seconds = parseInt(parts[0]) * 60 + parseFloat(parts[1]);
+            }
+            return seconds;
+        };
+
+        return vttContent.replace(timestampRegex, (match, startStr, endStr) => {
+            const start = parseTime(startStr);
+            const end = parseTime(endStr);
+
+            // Subtract offset
+            const newStart = Math.max(0, start - offsetSeconds);
+            const newEnd = Math.max(0, end - offsetSeconds);
+
+            // Convert back to HH:MM:SS.mmm format for output
+            const formatTime = (seconds) => {
+                const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+                const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+                const s = (seconds % 60).toFixed(3).padStart(6, '0');
+                return `${h}:${m}:${s}`;
+            };
+
+            return `${formatTime(newStart)} --> ${formatTime(newEnd)}`;
+        });
     }
 
     /**

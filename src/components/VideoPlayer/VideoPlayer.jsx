@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
     Play, Pause, Volume2, VolumeX, Maximize, Minimize,
     SkipBack, SkipForward, Settings, Subtitles, ChevronLeft,
-    Languages, Gauge, RotateCcw, X, Check, Loader2
+    Languages, Gauge, RotateCcw, X, Check, Loader2, ChevronDown
 } from 'lucide-react';
 import './VideoPlayer.css';
 
@@ -31,12 +31,14 @@ export const VideoPlayer = ({
     mediaInfo = null,
     streamBaseUrl = '',
     originalFilePath = '',
-    onSeek = null, // Callback for seeking (used for MKV streams)
+    onSeek = null,
 }) => {
     const videoRef = useRef(null);
     const containerRef = useRef(null);
     const progressRef = useRef(null);
     const controlsTimeoutRef = useRef(null);
+    const seekOffsetRef = useRef(startTime); // Ref to always have current seekOffset
+    const currentTimeRef = useRef(0); // Ref to always have current video time
 
     // Player state
     const [isPlaying, setIsPlaying] = useState(false);
@@ -55,9 +57,10 @@ export const VideoPlayer = ({
     const [seekOffset, setSeekOffset] = useState(startTime);
     const [isTranscodedStream, setIsTranscodedStream] = useState(false);
 
-    // Settings panel state
-    const [showSettings, setShowSettings] = useState(false);
-    const [activeSettingsPanel, setActiveSettingsPanel] = useState('main');
+    // Dropdown states
+    const [showSpeedMenu, setShowSpeedMenu] = useState(false);
+    const [showAudioMenu, setShowAudioMenu] = useState(false);
+    const [showSubtitleMenu, setShowSubtitleMenu] = useState(false);
     const [playbackSpeed, setPlaybackSpeed] = useState(1);
 
     // Track state
@@ -72,11 +75,9 @@ export const VideoPlayer = ({
 
     // Determine the effective duration (from mediaInfo for MKV, or from video element)
     const duration = useCallback(() => {
-        // If we have mediaInfo duration and it's valid, use it
         if (mediaInfo?.duration && isFinite(mediaInfo.duration) && mediaInfo.duration > 0) {
             return mediaInfo.duration;
         }
-        // Otherwise use video element duration if valid
         if (isFinite(videoDuration) && videoDuration > 0) {
             return videoDuration;
         }
@@ -100,13 +101,138 @@ export const VideoPlayer = ({
             setAudioTracks(mediaInfo.audioTracks || []);
             setSubtitleTracks(mediaInfo.subtitleTracks || []);
 
-            // Set default audio track
             const defaultAudio = mediaInfo.audioTracks?.find(t => t.default) || mediaInfo.audioTracks?.[0];
             if (defaultAudio) {
                 setSelectedAudioTrack(defaultAudio.index);
             }
         }
     }, [mediaInfo]);
+
+    // Activate/deactivate subtitle tracks when selection changes
+    useEffect(() => {
+        if (!videoRef.current) return;
+
+        let retryCount = 0;
+        const MAX_RETRIES = 10;
+
+        const activateSubtitles = () => {
+            const video = videoRef.current;
+            if (!video) return;
+
+            const textTracks = video.textTracks;
+            if (!textTracks || textTracks.length === 0) {
+                // Retry after a short delay if tracks aren't loaded yet
+                if (retryCount < MAX_RETRIES) {
+                    retryCount++;
+                    setTimeout(activateSubtitles, 100);
+                } else {
+                    console.warn('[VideoPlayer] Subtitle tracks failed to load after', MAX_RETRIES, 'attempts');
+                }
+                return;
+            }
+
+            console.log('[VideoPlayer] Activating subtitles, selected:', selectedSubtitleTrack, 'available tracks:', textTracks.length);
+
+            for (let i = 0; i < textTracks.length; i++) {
+                const track = textTracks[i];
+                console.log(`[VideoPlayer] Track ${i}: label="${track.label}", mode="${track.mode}"`);
+
+                if (selectedSubtitleTrack !== null) {
+                    // Try multiple matching strategies
+                    const matchingSubtitle = subtitleTracks.find(st => {
+                        // Match by label
+                        if (st.displayName === track.label) return true;
+                        // Match by track index in label
+                        if (track.label.includes(`${st.index}`)) return true;
+                        // Match by position if labels don't work
+                        if (i === subtitleTracks.findIndex(s => s.index === st.index)) return true;
+                        return false;
+                    });
+
+                    if (matchingSubtitle && matchingSubtitle.index === selectedSubtitleTrack) {
+                        track.mode = 'showing';
+                        console.log('[VideoPlayer] ✓ Showing subtitle track:', track.label);
+                    } else {
+                        track.mode = 'hidden';
+                    }
+                } else {
+                    track.mode = 'hidden';
+                }
+            }
+        };
+
+        activateSubtitles();
+    }, [selectedSubtitleTrack, subtitleTracks]);
+
+    // Close all dropdowns
+    const closeAllMenus = () => {
+        setShowSpeedMenu(false);
+        setShowAudioMenu(false);
+        setShowSubtitleMenu(false);
+    };
+
+    // Handle audio track change - immediately reload stream
+    const handleAudioTrackChange = useCallback((trackIndex) => {
+        if (trackIndex === selectedAudioTrack) return;
+
+        setSelectedAudioTrack(trackIndex);
+        closeAllMenus();
+
+        if (isTranscodedStream && streamBaseUrl && originalFilePath) {
+            // For transcoded streams, reload with new audio track
+            setIsLoading(true);
+
+            // Read current time from ref, with fallback to video element
+            let videoCurrentTime = currentTimeRef.current;
+            // If ref is 0 but video has progressed, read from element (happens if onTimeUpdate hasn't fired)
+            if (videoCurrentTime === 0 && videoRef.current) {
+                videoCurrentTime = videoRef.current.currentTime;
+            }
+            const currentPos = seekOffsetRef.current + videoCurrentTime;
+
+            console.log('[VideoPlayer] Audio change - videoTime:', videoCurrentTime, 'seekOffsetRef:', seekOffsetRef.current, 'currentPos:', currentPos);
+
+            const streamParams = new URLSearchParams({
+                file: originalFilePath,
+                start: currentPos.toString(),
+                audio: trackIndex.toString(),
+            });
+
+            const newUrl = `${streamBaseUrl}/stream?${streamParams.toString()}`;
+            console.log('[VideoPlayer] Changing audio track, new URL:', newUrl);
+
+            // Reset seek offset to current position
+            seekOffsetRef.current = currentPos;
+            setSeekOffset(currentPos);
+            setCurrentTime(0);
+
+            if (videoRef.current) {
+                const video = videoRef.current;
+
+                // Wait for canplaythrough before playing
+                const handleCanPlayThrough = () => {
+                    setIsLoading(false);
+                    video.play().catch(err => {
+                        console.error('[VideoPlayer] Audio change play error:', err);
+                        setIsLoading(false);
+                    });
+                    video.removeEventListener('canplaythrough', handleCanPlayThrough);
+                };
+
+                const handleLoadError = (e) => {
+                    console.error('[VideoPlayer] Audio change load error:', e);
+                    setIsLoading(false);
+                    video.removeEventListener('error', handleLoadError);
+                };
+
+                video.addEventListener('canplaythrough', handleCanPlayThrough, { once: true });
+                video.addEventListener('error', handleLoadError, { once: true });
+
+                video.src = newUrl;
+                video.load();
+            }
+        }
+    }, [selectedAudioTrack, isTranscodedStream, streamBaseUrl, originalFilePath]);
 
     // Handle keyboard shortcuts
     useEffect(() => {
@@ -142,7 +268,7 @@ export const VideoPlayer = ({
                     toggleFullscreen();
                     break;
                 case 'Escape':
-                    if (showSettings) setShowSettings(false);
+                    closeAllMenus();
                     break;
                 case 'c':
                     if (subtitleTracks.length > 0) {
@@ -163,7 +289,7 @@ export const VideoPlayer = ({
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [showSettings, selectedSubtitleTrack, subtitleTracks, effectiveCurrentTime, duration]);
+    }, [selectedSubtitleTrack, subtitleTracks, effectiveCurrentTime, duration]);
 
     // Apply playback speed
     useEffect(() => {
@@ -178,16 +304,16 @@ export const VideoPlayer = ({
         if (controlsTimeoutRef.current) {
             clearTimeout(controlsTimeoutRef.current);
         }
-        if (isPlaying && !showSettings) {
+        if (isPlaying && !showSpeedMenu && !showAudioMenu && !showSubtitleMenu) {
             controlsTimeoutRef.current = setTimeout(() => {
                 setShowControls(false);
             }, 3000);
         }
-    }, [isPlaying, showSettings]);
+    }, [isPlaying, showSpeedMenu, showAudioMenu, showSubtitleMenu]);
 
     useEffect(() => {
         showControlsTemporarily();
-    }, [isPlaying, showSettings, showControlsTemporarily]);
+    }, [isPlaying, showSpeedMenu, showAudioMenu, showSubtitleMenu, showControlsTemporarily]);
 
     // Player actions
     const togglePlay = () => {
@@ -243,13 +369,12 @@ export const VideoPlayer = ({
         const clampedTime = Math.max(0, Math.min(duration, targetTime));
 
         if (isTranscodedStream && streamBaseUrl && originalFilePath) {
-            // For transcoded MKV streams, we need to restart the stream at the new position
             setIsSeeking(true);
             setIsLoading(true);
+            seekOffsetRef.current = clampedTime;
             setSeekOffset(clampedTime);
             setCurrentTime(0);
 
-            // Build new stream URL with start time
             const streamParams = new URLSearchParams({
                 file: originalFilePath,
                 start: clampedTime.toString(),
@@ -263,22 +388,25 @@ export const VideoPlayer = ({
             console.log('[VideoPlayer] Seeking to', clampedTime, 'new URL:', newUrl);
 
             if (videoRef.current) {
-                videoRef.current.src = newUrl;
-                videoRef.current.load();
-                videoRef.current.play().then(() => {
+                const video = videoRef.current;
+
+                // Start playing as soon as we can (don't wait for full buffer)
+                const handleCanPlaySeek = () => {
                     setIsSeeking(false);
-                }).catch(err => {
-                    console.error('[VideoPlayer] Seek play error:', err);
-                    setIsSeeking(false);
-                });
+                    setIsLoading(false);
+                    video.play().catch(err => console.error('[VideoPlayer] Seek play error:', err));
+                    video.removeEventListener('canplay', handleCanPlaySeek);
+                };
+
+                video.addEventListener('canplay', handleCanPlaySeek, { once: true });
+                video.src = newUrl;
+                video.load();
             }
 
-            // Notify parent if callback provided
             if (onSeek) {
                 onSeek(clampedTime);
             }
         } else {
-            // For regular videos, just set currentTime directly
             if (videoRef.current) {
                 videoRef.current.currentTime = clampedTime;
             }
@@ -345,14 +473,15 @@ export const VideoPlayer = ({
     // Video event handlers
     const handleTimeUpdate = () => {
         if (videoRef.current && !isSeeking) {
-            setCurrentTime(videoRef.current.currentTime);
+            const time = videoRef.current.currentTime;
+            currentTimeRef.current = time;
+            setCurrentTime(time);
         }
     };
 
     const handleLoadedMetadata = () => {
         if (videoRef.current) {
             const videoDur = videoRef.current.duration;
-            // Only set if it's a valid finite number
             if (isFinite(videoDur) && videoDur > 0) {
                 setVideoDuration(videoDur);
             }
@@ -388,164 +517,31 @@ export const VideoPlayer = ({
     // Generate subtitle track URL
     const getSubtitleUrl = (trackIndex) => {
         if (!streamBaseUrl || !originalFilePath) return null;
-        return `${streamBaseUrl}/subtitle?file=${encodeURIComponent(originalFilePath)}&track=${trackIndex}`;
+        return `${streamBaseUrl}/subtitle?file=${encodeURIComponent(originalFilePath)}&track=${trackIndex}&start=${seekOffset}`;
     };
 
     // Calculate progress percentages
     const progressPercent = duration > 0 ? (effectiveCurrentTime / duration) * 100 : 0;
     const bufferedPercent = duration > 0 ? (buffered / duration) * 100 : 0;
 
-    // Render settings panels
-    const renderSettingsPanel = () => {
-        switch (activeSettingsPanel) {
-            case 'speed':
-                return (
-                    <div className="settings-panel speed-panel">
-                        <button className="settings-back" onClick={() => setActiveSettingsPanel('main')}>
-                            <ChevronLeft size={18} />
-                            <span>Playback Speed</span>
-                        </button>
-                        <div className="settings-options">
-                            {SPEED_OPTIONS.map(speed => (
-                                <button
-                                    key={speed}
-                                    className={`settings-option ${playbackSpeed === speed ? 'active' : ''}`}
-                                    onClick={() => {
-                                        setPlaybackSpeed(speed);
-                                        setActiveSettingsPanel('main');
-                                    }}
-                                >
-                                    <span>{speed === 1 ? 'Normal' : `${speed}x`}</span>
-                                    {playbackSpeed === speed && <Check size={16} />}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                );
-
-            case 'audio':
-                return (
-                    <div className="settings-panel audio-panel">
-                        <button className="settings-back" onClick={() => setActiveSettingsPanel('main')}>
-                            <ChevronLeft size={18} />
-                            <span>Audio Track</span>
-                        </button>
-                        <div className="settings-options">
-                            {audioTracks.length === 0 ? (
-                                <div className="settings-empty">No audio tracks available</div>
-                            ) : (
-                                audioTracks.map(track => (
-                                    <button
-                                        key={track.index}
-                                        className={`settings-option ${selectedAudioTrack === track.index ? 'active' : ''}`}
-                                        onClick={() => {
-                                            setSelectedAudioTrack(track.index);
-                                            setActiveSettingsPanel('main');
-                                        }}
-                                    >
-                                        <span>{track.displayName || `Track ${track.index}`}</span>
-                                        {selectedAudioTrack === track.index && <Check size={16} />}
-                                    </button>
-                                ))
-                            )}
-                        </div>
-                    </div>
-                );
-
-            case 'subtitles':
-                return (
-                    <div className="settings-panel subtitles-panel">
-                        <button className="settings-back" onClick={() => setActiveSettingsPanel('main')}>
-                            <ChevronLeft size={18} />
-                            <span>Subtitles</span>
-                        </button>
-                        <div className="settings-options">
-                            <button
-                                className={`settings-option ${selectedSubtitleTrack === null ? 'active' : ''}`}
-                                onClick={() => {
-                                    setSelectedSubtitleTrack(null);
-                                    setActiveSettingsPanel('main');
-                                }}
-                            >
-                                <span>Off</span>
-                                {selectedSubtitleTrack === null && <Check size={16} />}
-                            </button>
-                            {subtitleTracks.map(track => (
-                                <button
-                                    key={track.index}
-                                    className={`settings-option ${selectedSubtitleTrack === track.index ? 'active' : ''}`}
-                                    onClick={() => {
-                                        setSelectedSubtitleTrack(track.index);
-                                        setActiveSettingsPanel('main');
-                                    }}
-                                >
-                                    <span>{track.displayName || `Track ${track.index}`}</span>
-                                    {selectedSubtitleTrack === track.index && <Check size={16} />}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                );
-
-            default: // main
-                return (
-                    <div className="settings-panel main-panel">
-                        <div className="settings-header">
-                            <span>Settings</span>
-                            <button className="settings-close" onClick={() => setShowSettings(false)}>
-                                <X size={18} />
-                            </button>
-                        </div>
-                        <div className="settings-options">
-                            <button
-                                className="settings-option has-submenu"
-                                onClick={() => setActiveSettingsPanel('speed')}
-                            >
-                                <Gauge size={18} />
-                                <span>Playback Speed</span>
-                                <span className="settings-value">{playbackSpeed === 1 ? 'Normal' : `${playbackSpeed}x`}</span>
-                            </button>
-
-                            {audioTracks.length > 0 && (
-                                <button
-                                    className="settings-option has-submenu"
-                                    onClick={() => setActiveSettingsPanel('audio')}
-                                >
-                                    <Languages size={18} />
-                                    <span>Audio Track</span>
-                                    <span className="settings-value">
-                                        {audioTracks.find(t => t.index === selectedAudioTrack)?.displayName || 'Default'}
-                                    </span>
-                                </button>
-                            )}
-
-                            {subtitleTracks.length > 0 && (
-                                <button
-                                    className="settings-option has-submenu"
-                                    onClick={() => setActiveSettingsPanel('subtitles')}
-                                >
-                                    <Subtitles size={18} />
-                                    <span>Subtitles</span>
-                                    <span className="settings-value">
-                                        {selectedSubtitleTrack === null
-                                            ? 'Off'
-                                            : subtitleTracks.find(t => t.index === selectedSubtitleTrack)?.displayName || 'On'
-                                        }
-                                    </span>
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                );
-        }
-    };
+    // Get current track display names
+    const currentAudioName = audioTracks.find(t => t.index === selectedAudioTrack)?.displayName || 'Default';
+    const currentSubtitleName = selectedSubtitleTrack === null
+        ? 'Off'
+        : subtitleTracks.find(t => t.index === selectedSubtitleTrack)?.displayName || 'On';
 
     return (
         <div
             ref={containerRef}
             className={`video-player-container ${isFullscreen ? 'fullscreen' : ''} ${showControls ? 'controls-visible' : ''}`}
             onMouseMove={showControlsTemporarily}
-            onMouseLeave={() => isPlaying && setShowControls(false)}
+            onMouseLeave={() => isPlaying && !showAudioMenu && !showSubtitleMenu && !showSpeedMenu && setShowControls(false)}
+            onClick={(e) => {
+                // Close menus when clicking outside
+                if (!e.target.closest('.dropdown-wrapper')) {
+                    closeAllMenus();
+                }
+            }}
         >
             {/* Video Element */}
             <video
@@ -630,22 +626,18 @@ export const VideoPlayer = ({
                     onMouseMove={handleProgressHover}
                     onMouseLeave={() => setPreviewTime(null)}
                 >
-                    {/* Buffered */}
                     <div
                         className="progress-buffered"
                         style={{ width: `${Math.min(100, bufferedPercent)}%` }}
                     />
-                    {/* Progress */}
                     <div
                         className="progress-played"
                         style={{ width: `${Math.min(100, progressPercent)}%` }}
                     />
-                    {/* Seek Handle */}
                     <div
                         className="progress-handle"
                         style={{ left: `${Math.min(100, progressPercent)}%` }}
                     />
-                    {/* Preview Tooltip */}
                     {previewTime !== null && (
                         <div
                             className="preview-tooltip"
@@ -672,7 +664,6 @@ export const VideoPlayer = ({
                             <SkipForward size={20} />
                         </button>
 
-                        {/* Volume */}
                         <div className="volume-control">
                             <button className="control-btn" onClick={toggleMute} title={isMuted ? 'Unmute (m)' : 'Mute (m)'}>
                                 {isMuted || volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
@@ -688,7 +679,6 @@ export const VideoPlayer = ({
                             />
                         </div>
 
-                        {/* Time Display */}
                         <div className="time-display">
                             <span>{formatTime(effectiveCurrentTime)}</span>
                             <span className="time-separator">/</span>
@@ -703,39 +693,126 @@ export const VideoPlayer = ({
                             <span className="speed-indicator">{playbackSpeed}x</span>
                         )}
 
-                        {/* Quick Subtitle Toggle */}
-                        {subtitleTracks.length > 0 && (
-                            <button
-                                className={`control-btn ${selectedSubtitleTrack !== null ? 'active' : ''}`}
-                                onClick={() => {
-                                    if (selectedSubtitleTrack !== null) {
-                                        setSelectedSubtitleTrack(null);
-                                    } else if (subtitleTracks.length > 0) {
-                                        setSelectedSubtitleTrack(subtitleTracks[0].index);
-                                    }
-                                }}
-                                title="Toggle Subtitles (c)"
-                            >
-                                <Subtitles size={20} />
-                            </button>
+                        {/* Audio Track Selector */}
+                        {audioTracks.length > 1 && (
+                            <div className="dropdown-wrapper">
+                                <button
+                                    className={`control-btn dropdown-btn ${showAudioMenu ? 'active' : ''}`}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowAudioMenu(!showAudioMenu);
+                                        setShowSubtitleMenu(false);
+                                        setShowSpeedMenu(false);
+                                    }}
+                                    title="Audio Track"
+                                >
+                                    <Languages size={20} />
+                                    <span className="dropdown-label">{currentAudioName.split(' ')[0]}</span>
+                                    <ChevronDown size={14} />
+                                </button>
+                                {showAudioMenu && (
+                                    <div className="dropdown-menu">
+                                        <div className="dropdown-header">Audio Track</div>
+                                        {audioTracks.map(track => (
+                                            <button
+                                                key={track.index}
+                                                className={`dropdown-item ${selectedAudioTrack === track.index ? 'active' : ''}`}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleAudioTrackChange(track.index);
+                                                }}
+                                            >
+                                                <span>{track.displayName || `Track ${track.index}`}</span>
+                                                {selectedAudioTrack === track.index && <Check size={16} />}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         )}
 
-                        {/* Settings */}
-                        <div className="settings-wrapper">
-                            <button
-                                className={`control-btn ${showSettings ? 'active' : ''}`}
-                                onClick={() => {
-                                    setShowSettings(!showSettings);
-                                    setActiveSettingsPanel('main');
-                                }}
-                                title="Settings"
-                            >
-                                <Settings size={20} />
-                            </button>
+                        {/* Subtitle Selector */}
+                        {subtitleTracks.length > 0 && (
+                            <div className="dropdown-wrapper">
+                                <button
+                                    className={`control-btn dropdown-btn ${showSubtitleMenu ? 'active' : ''} ${selectedSubtitleTrack !== null ? 'has-selection' : ''}`}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowSubtitleMenu(!showSubtitleMenu);
+                                        setShowAudioMenu(false);
+                                        setShowSpeedMenu(false);
+                                    }}
+                                    title="Subtitles (c)"
+                                >
+                                    <Subtitles size={20} />
+                                    <span className="dropdown-label">{selectedSubtitleTrack !== null ? 'On' : 'Off'}</span>
+                                    <ChevronDown size={14} />
+                                </button>
+                                {showSubtitleMenu && (
+                                    <div className="dropdown-menu subtitle-menu">
+                                        <div className="dropdown-header">Subtitles</div>
+                                        <button
+                                            className={`dropdown-item ${selectedSubtitleTrack === null ? 'active' : ''}`}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSelectedSubtitleTrack(null);
+                                                setShowSubtitleMenu(false);
+                                            }}
+                                        >
+                                            <span>Off</span>
+                                            {selectedSubtitleTrack === null && <Check size={16} />}
+                                        </button>
+                                        {subtitleTracks.map(track => (
+                                            <button
+                                                key={track.index}
+                                                className={`dropdown-item ${selectedSubtitleTrack === track.index ? 'active' : ''}`}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setSelectedSubtitleTrack(track.index);
+                                                    setShowSubtitleMenu(false);
+                                                }}
+                                            >
+                                                <span>{track.displayName || `Track ${track.index}`}</span>
+                                                {selectedSubtitleTrack === track.index && <Check size={16} />}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
-                            {showSettings && (
-                                <div className="settings-dropdown">
-                                    {renderSettingsPanel()}
+                        {/* Speed Selector */}
+                        <div className="dropdown-wrapper">
+                            <button
+                                className={`control-btn dropdown-btn ${showSpeedMenu ? 'active' : ''}`}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowSpeedMenu(!showSpeedMenu);
+                                    setShowAudioMenu(false);
+                                    setShowSubtitleMenu(false);
+                                }}
+                                title="Playback Speed"
+                            >
+                                <Gauge size={20} />
+                                <span className="dropdown-label">{playbackSpeed === 1 ? '1x' : `${playbackSpeed}x`}</span>
+                            </button>
+                            {showSpeedMenu && (
+                                <div className="dropdown-menu speed-menu">
+                                    <div className="dropdown-header">Speed</div>
+                                    {SPEED_OPTIONS.map(speed => (
+                                        <button
+                                            key={speed}
+                                            className={`dropdown-item ${playbackSpeed === speed ? 'active' : ''}`}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setPlaybackSpeed(speed);
+                                                setShowSpeedMenu(false);
+                                            }}
+                                        >
+                                            <span>{speed === 1 ? 'Normal' : `${speed}x`}</span>
+                                            {playbackSpeed === speed && <Check size={16} />}
+                                        </button>
+                                    ))}
                                 </div>
                             )}
                         </div>
@@ -747,11 +824,6 @@ export const VideoPlayer = ({
                     </div>
                 </div>
             </div>
-
-            {/* Click anywhere on settings overlay to close */}
-            {showSettings && (
-                <div className="settings-backdrop" onClick={() => setShowSettings(false)} />
-            )}
         </div>
     );
 };

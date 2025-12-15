@@ -142,29 +142,29 @@ export const Settings = () => {
             value: "library",
             content: (
                 <div className="w-full relative h-full rounded-2xl p-6 md:p-10 bg-white dark:bg-gradient-to-br dark:from-neutral-900 dark:to-neutral-950 border border-neutral-200 dark:border-white/10 shadow-xl overflow-y-auto custom-scrollbar">
-                    <div className="flex justify-between items-center mb-8">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 md:mb-8 gap-4">
                         <div>
-                            <h3 className="text-3xl font-bold text-neutral-900 dark:text-white flex items-center gap-3">
-                                <Database className="w-8 h-8 text-primary" /> Library Management
+                            <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-neutral-900 dark:text-white flex items-center gap-2 sm:gap-3">
+                                <Database className="w-6 h-6 sm:w-8 sm:h-8 text-primary" /> Library Management
                             </h3>
-                            <p className="text-neutral-500 mt-2">Manage your media sources and metadata.</p>
+                            <p className="text-neutral-500 mt-1 sm:mt-2 text-sm sm:text-base">Manage your media sources and metadata.</p>
                         </div>
                         {isSyncing && (
-                            <div className="bg-primary/20 text-primary px-4 py-2 rounded-full flex items-center gap-2 animate-pulse font-medium">
+                            <div className="bg-primary/20 text-primary px-3 py-2 rounded-full flex items-center gap-2 animate-pulse font-medium text-sm">
                                 <Loader2 className="w-4 h-4 animate-spin" /> Syncing...
                             </div>
                         )}
                     </div>
 
                     {/* Stats Grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8 md:mb-10">
                         <StatsCard icon={Film} label="Movies" value={moviesCount} color="text-blue-500" />
                         <StatsCard icon={Tv} label="TV Series" value={distinctSeries} subtext={`${tvEpisodesCount} Eps`} color="text-purple-500" />
                         <StatsCard icon={FolderOpen} label="Sources" value={folders.length + ftpSources.length} color="text-yellow-500" />
                         <StatsCard icon={HardDrive} label="Storage" value={formatBytes(totalBytes)} color="text-green-500" />
                     </div>
 
-                    <div className="grid md:grid-cols-2 gap-8">
+                    <div className="grid lg:grid-cols-2 gap-6 md:gap-8">
                         <div>
                             <SettingsSection title="Connected Sources">
                                 {folders.length === 0 && ftpSources.length === 0 && (
@@ -342,9 +342,9 @@ export const Settings = () => {
     ];
 
     return (
-        <div className="h-[40rem] md:h-[50rem] [perspective:1000px] relative flex flex-col max-w-7xl mx-auto w-full items-start justify-start my-10 px-4">
-            <h2 className="text-4xl font-bold text-neutral-900 dark:text-white mb-8 tracking-tight">Settings</h2>
-            <Tabs tabs={tabs} containerClassName="mb-10" />
+        <div className="min-h-screen pb-20 relative flex flex-col w-full items-start justify-start px-2 sm:px-4">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-900 dark:text-white mb-6 md:mb-8 tracking-tight">Settings</h2>
+            <Tabs tabs={tabs} containerClassName="mb-10 w-full" />
         </div>
     );
 };
@@ -361,35 +361,35 @@ const SettingsSection = ({ title, children }) => (
 );
 
 const StatsCard = ({ icon: Icon, label, value, subtext, color }) => (
-    <div className="p-5 rounded-2xl bg-neutral-100 dark:bg-white/5 border border-neutral-200 dark:border-white/5 flex flex-col items-center justify-center text-center hover:bg-white/10 transition-colors cursor-default">
-        <div className={cn("mb-3 p-3 rounded-full bg-white dark:bg-neutral-800 shadow-lg", color)}>
-            <Icon className="w-6 h-6" />
+    <div className="p-3 sm:p-5 rounded-xl sm:rounded-2xl bg-neutral-100 dark:bg-white/5 border border-neutral-200 dark:border-white/5 flex flex-col items-center justify-center text-center hover:bg-white/10 transition-colors cursor-default">
+        <div className={cn("mb-2 sm:mb-3 p-2 sm:p-3 rounded-full bg-white dark:bg-neutral-800 shadow-lg", color)}>
+            <Icon className="w-4 h-4 sm:w-6 sm:h-6" />
         </div>
-        <span className="text-3xl font-bold text-neutral-900 dark:text-white block tracking-tighter">{value}</span>
-        <span className="text-sm font-medium text-neutral-500 dark:text-neutral-400 block">{label}</span>
-        {subtext && <span className="text-xs text-neutral-400 dark:text-neutral-600 mt-1">{subtext}</span>}
+        <span className="text-xl sm:text-2xl md:text-3xl font-bold text-neutral-900 dark:text-white block tracking-tighter">{value}</span>
+        <span className="text-xs sm:text-sm font-medium text-neutral-500 dark:text-neutral-400 block">{label}</span>
+        {subtext && <span className="text-[10px] sm:text-xs text-neutral-400 dark:text-neutral-600 mt-1">{subtext}</span>}
     </div>
 );
 
 const ActionRow = ({ icon: Icon, label, description, actionLabel, variant = 'primary', onClick, disabled }) => (
-    <div className="flex items-center justify-between p-5 border-b last:border-0 border-neutral-200 dark:border-white/5 bg-white dark:bg-transparent hover:bg-neutral-50 dark:hover:bg-white/5 transition group">
-        <div className="flex items-center gap-5">
-            <div className={cn("p-3 rounded-xl", variant === 'danger' ? "bg-red-500/10 text-red-500" : "bg-neutral-200 dark:bg-white/5 text-neutral-600 dark:text-neutral-300")}>
-                <Icon className="w-5 h-5" />
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-5 gap-3 sm:gap-4 border-b last:border-0 border-neutral-200 dark:border-white/5 bg-white dark:bg-transparent hover:bg-neutral-50 dark:hover:bg-white/5 transition group">
+        <div className="flex items-start sm:items-center gap-3 sm:gap-5">
+            <div className={cn("p-2 sm:p-3 rounded-xl shrink-0", variant === 'danger' ? "bg-red-500/10 text-red-500" : "bg-neutral-200 dark:bg-white/5 text-neutral-600 dark:text-neutral-300")}>
+                <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
-                <span className={cn("block text-base font-medium", variant === 'danger' ? "text-red-400" : "text-white")}>{label}</span>
-                <span className="block text-xs text-neutral-400 max-w-xs md:max-w-sm mt-0.5">{description}</span>
+                <span className={cn("block text-sm sm:text-base font-medium", variant === 'danger' ? "text-red-400" : "text-neutral-900 dark:text-white")}>{label}</span>
+                <span className="block text-xs text-neutral-500 dark:text-neutral-400 max-w-xs mt-0.5">{description}</span>
             </div>
         </div>
         <button
             onClick={onClick}
             disabled={disabled}
             className={cn(
-                "px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:pointer-events-none",
+                "px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:pointer-events-none w-full sm:w-auto",
                 variant === 'danger'
                     ? "bg-red-600/20 text-red-500 hover:bg-red-600 hover:text-white"
-                    : "bg-white text-black hover:bg-neutral-200"
+                    : "bg-neutral-900 dark:bg-white text-white dark:text-black hover:bg-neutral-700 dark:hover:bg-neutral-200"
             )}
         >
             {actionLabel}
@@ -433,14 +433,14 @@ const ThemeCard = ({ icon: Icon, label, active, onClick }) => (
     <div
         onClick={onClick}
         className={cn(
-            "cursor-pointer flex flex-col items-center justify-center p-6 rounded-2xl border-2 transition-all duration-200 hover:scale-105 active:scale-95",
+            "cursor-pointer flex flex-col items-center justify-center p-4 sm:p-6 rounded-xl sm:rounded-2xl border-2 transition-all duration-200 hover:scale-105 active:scale-95",
             active
                 ? "bg-primary/10 border-primary text-primary shadow-xl shadow-primary/10"
                 : "bg-white dark:bg-white/5 border-transparent text-neutral-500 hover:bg-neutral-50 dark:hover:bg-white/10"
         )}
     >
-        <Icon className={cn("w-8 h-8 mb-3", active && "fill-current")} />
-        <span className="font-bold text-sm tracking-wide">{label}</span>
+        <Icon className={cn("w-6 h-6 sm:w-8 sm:h-8 mb-2 sm:mb-3", active && "fill-current")} />
+        <span className="font-bold text-xs sm:text-sm tracking-wide">{label}</span>
     </div>
 );
 

@@ -49,16 +49,16 @@ export const Library = () => {
     };
 
     return (
-        <div className="min-h-screen pb-20">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4 px-2">
+        <div className="min-h-screen pb-20 px-2 sm:px-4">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 md:mb-8 gap-4">
                 <div>
                     {/* "My Library" text with Aceternity gradient style if preferred, keeping existing gradient for now */}
-                    <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-neutral-400">
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-neutral-400">
                         My Library
                     </h1>
                     <div className="flex items-center gap-4 mt-2">
-                        <p className="text-muted-foreground">
-                            {filteredLibrary.length} titles
+                        <p className="text-muted-foreground text-sm sm:text-base">
+                            {filteredLibrary.length} items
                         </p>
                         <div className="h-4 w-[1px] bg-neutral-700" />
                         <button
