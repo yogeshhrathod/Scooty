@@ -44,8 +44,10 @@ export const TvShowDetails = () => {
     const navigate = useNavigate();
     const library = useStore((state) => state.library);
 
+    const history = useStore((state) => state.history);
+
     // Find all episodes for this show
-    const { show, allEpisodes, seasons } = useMemo(() => {
+    const { show, allEpisodes, seasons, lastWatchedEpisode } = useMemo(() => {
         const decodedId = decodeURIComponent(showId);
 
         // Find all episodes that belong to this show
@@ -71,12 +73,34 @@ export const TvShowDetails = () => {
             return acc;
         }, {});
 
+        // Find last watched episode
+        let lastWatched = null;
+        let recentTime = 0;
+
+        episodes.forEach(ep => {
+            const h = history[ep.path];
+            if (h) {
+                // Check if it's really watched (progress > 10s)
+                const progress = typeof h === 'number' ? h : h.progress;
+                const lastTime = typeof h === 'number' ? 0 : h.lastWatched || 0;
+
+                if (progress > 10 && lastTime > recentTime) {
+                    recentTime = lastTime;
+                    lastWatched = ep;
+                }
+            }
+        });
+
+        // If no episode is specifically last watched, default to first episode
+        const targetEpisode = lastWatched || episodes[0];
+
         return {
             show: representativeShow,
             allEpisodes: episodes,
-            seasons: seasonMap
+            seasons: seasonMap,
+            lastWatchedEpisode: targetEpisode
         };
-    }, [library, showId]);
+    }, [library, showId, history]);
 
     // Get suggested TV shows (other shows in library)
     const suggestions = useMemo(() => {
@@ -311,15 +335,19 @@ export const TvShowDetails = () => {
                         >
                             <button
                                 onClick={() => {
-                                    const ep = allEpisodes[0];
-                                    const playPath = encodeURIComponent(ep?.path || ep?.id || 'mock');
-                                    const title = encodeURIComponent(`${show.showTitle || show.title} - S${ep?.season || 1}E${ep?.episode || 1}`);
+                                    const ep = lastWatchedEpisode || allEpisodes[0];
+                                    if (!ep) return;
+                                    const playPath = encodeURIComponent(ep.path || ep.id || 'mock');
+                                    const title = encodeURIComponent(`${show.showTitle || show.title} - S${ep.season || 1}E${ep.episode || 1}`);
                                     navigate(`/play/${playPath}?title=${title}`);
                                 }}
                                 className="flex items-center gap-3 bg-white text-black px-10 py-4 rounded-full font-bold hover:bg-neutral-200 transition-all shadow-lg shadow-white/20 hover:scale-105"
                             >
                                 <Play className="w-6 h-6 fill-black" />
-                                Play S{allEpisodes[0]?.season || 1}E{allEpisodes[0]?.episode || 1}
+                                {lastWatchedEpisode && history[lastWatchedEpisode.path]
+                                    ? `Resume S${lastWatchedEpisode.season}E${lastWatchedEpisode.episode}`
+                                    : `Play S${allEpisodes[0]?.season || 1}E${allEpisodes[0]?.episode || 1}`
+                                }
                             </button>
                             <button className="p-4 rounded-full font-medium border border-white/20 hover:bg-white/10 transition-colors text-white">
                                 <Info className="w-6 h-6" />

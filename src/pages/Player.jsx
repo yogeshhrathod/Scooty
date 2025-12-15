@@ -102,10 +102,10 @@ export const Player = () => {
                         streamParams.append('audio', defaultAudioTrackIndex);
                     }
 
-                    // Note: We don't need to append 'start' here because VideoPlayer handles seekOffset.
-                    // However, for efficiency, if we have a resume time, we COULD start transcoding from there.
-                    // But VideoPlayer logic is setup to seek after load.
-                    // Let's let VideoPlayer handle the seek to keep it consistent.
+                    // Append start parameter to ensure transcoding starts from the correct time
+                    if (historyItem?.progress > 0) {
+                        streamParams.append('start', historyItem.progress.toString());
+                    }
 
                     url = `${baseUrl}/stream?${streamParams.toString()}`;
                 } else {

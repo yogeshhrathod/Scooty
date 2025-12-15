@@ -1,27 +1,24 @@
-import React from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Spotlight } from '../components/ui/spotlight';
 import { MovieCard } from '../components/MovieCard';
+import { Hero } from '../components/Hero';
 import { useStore } from '../store/useStore';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 
 export const Home = () => {
-    // Attempt to get movies from store, fallback to empty array if store is not ready
     const library = useStore((state) => state.library) || [];
     const navigate = useNavigate();
-
-    // Get history from store
     const history = useStore((state) => state.history) || {};
+    const [heroItem, setHeroItem] = useState(null);
 
-    // Group items: Movies are individual, TV Shows are grouped by tmdbId or showTitle
-    const displayItems = React.useMemo(() => {
-        if (!library || library.length === 0) {
-            return [];
-        }
+    // Group items logic
+    const displayItems = useMemo(() => {
+        if (!library || library.length === 0) return [];
 
         const map = new Map();
         library.forEach(item => {
             if (item.type === 'tv') {
-                // Group TV shows by tmdbId or showTitle
                 const key = item.tmdbId ? `tv-${item.tmdbId}` : `tv-${item.showTitle || item.title}`;
                 if (!map.has(key)) {
                     map.set(key, {
@@ -32,82 +29,131 @@ export const Home = () => {
                     });
                 }
             } else {
-                // Movies are shown individually
                 map.set(item.id || item.path, item);
             }
         });
         return Array.from(map.values());
     }, [library]);
 
-    // Derive Continue Watching items
-    const continueWatchingItems = React.useMemo(() => {
+    // Continue Watching logic
+    const continueWatchingItems = useMemo(() => {
         if (!library || library.length === 0) return [];
-
         return Object.entries(history)
             .map(([id, data]) => {
-                // Find the item in the library
-                // Note: id in history is the filePath for local files
                 const item = library.find(l => l.path === id || l.id === id);
                 if (!item) return null;
-
-                // Normalize history data
                 const progress = typeof data === 'number' ? data : data.progress;
                 const duration = typeof data === 'number' ? 0 : data.duration;
                 const lastWatched = typeof data === 'number' ? 0 : data.lastWatched;
-
-                // Filter out finished items (e.g., > 90% watched)
-                // And items with very little progress (e.g. < 10s)
                 if (duration > 0) {
                     const pct = progress / duration;
-                    if (pct > 0.95) return null; // Considered finished
-                    if (pct < 0.01 && progress < 30) return null; // Just opened, not really watching
+                    if (pct > 0.95) return null;
+                    if (pct < 0.01 && progress < 30) return null;
                 } else {
                     if (progress < 10) return null;
                 }
-
                 return { ...item, lastWatched, progress, duration };
             })
             .filter(Boolean)
             .sort((a, b) => (b.lastWatched || 0) - (a.lastWatched || 0));
     }, [library, history]);
 
-    // Get only movies for "Recommended"
-    const moviesOnly = displayItems.filter(item => item.type !== 'tv');
-    const tvShowsOnly = displayItems.filter(item => item.type === 'tv');
+    const moviesOnly = useMemo(() => displayItems.filter(item => item.type !== 'tv'), [displayItems]);
+    const tvShowsOnly = useMemo(() => displayItems.filter(item => item.type === 'tv'), [displayItems]);
+
+    // Select Hero Item
+    useEffect(() => {
+        if (displayItems.length > 0 && !heroItem) {
+            // Prefer items with backdrop images
+            const candidates = displayItems.filter(i => i.backdrop_path);
+            const pool = candidates.length > 0 ? candidates : displayItems;
+
+            // Pick a random one from the pool
+            const randomItem = pool[Math.floor(Math.random() * pool.length)];
+            setHeroItem(randomItem);
+        }
+    }, [displayItems, heroItem]);
 
     const handleItemClick = (item) => {
         if (item.type === 'tv') {
-            // Navigate to TV show details page
             navigate(`/tv/${item.tmdbId || encodeURIComponent(item.showTitle || item.title)}`);
         } else {
-            // Navigate to movie details page
             navigate(`/details/${item.tmdbId || item.id || encodeURIComponent(item.path)}`);
         }
     };
 
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.1
+            }
+        }
+    };
+
+    const itemVariants = {
+        hidden: { y: 20, opacity: 0 },
+        visible: {
+            y: 0,
+            opacity: 1
+        }
+    };
+
+    if (displayItems.length === 0) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[80vh] text-center w-full px-4 relative overflow-hidden">
+                <Spotlight className="-top-40 left-0 md:left-60 md:-top-20" fill="white" />
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.5 }}
+                    className="z-10"
+                >
+                    <h1 className="text-4xl md:text-6xl font-black bg-clip-text text-transparent bg-gradient-to-b from-neutral-50 to-neutral-400 pb-4">
+                        Welcome to Scooty
+                    </h1>
+                    <p className="mt-4 text-lg text-neutral-400 max-w-lg mx-auto">
+                        Your personal media sanctuary. Add your library to get started.
+                    </p>
+                    <button
+                        onClick={() => navigate('/settings')}
+                        className="mt-8 px-8 py-3 bg-primary rounded-full text-white font-semibold hover:bg-primary/90 transition-all hover:scale-105 shadow-lg shadow-primary/20"
+                    >
+                        Setup Library
+                    </button>
+                </motion.div>
+            </div>
+        );
+    }
+
     return (
-        <div className="relative w-full min-h-[calc(100vh-80px)] overflow-hidden rounded-md flex flex-col items-start justify-start">
-            <Spotlight
-                className="-top-40 left-0 md:left-60 md:-top-20"
-                fill="white"
-            />
+        <div className="relative w-full min-h-screen pb-20 overflow-x-hidden">
+            <Spotlight className="-top-40 left-0 md:left-60 md:-top-20" fill="white" />
 
-            <div className="relative z-10 w-full px-2 sm:px-4">
-                {/* Continue Watching Section */}
+            {/* Hero Section */}
+            <div className="px-4 md:px-8 lg:px-12 pt-6 mb-12">
+                <Hero item={heroItem} />
+            </div>
+
+            <motion.div
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                className="space-y-12 px-4 md:px-8 lg:px-12"
+            >
+                {/* Continue Watching */}
                 {continueWatchingItems.length > 0 && (
-                    <div className="mb-10 md:mb-12">
-                        <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-b from-neutral-600 to-neutral-900 dark:from-neutral-50 dark:to-neutral-400 bg-opacity-50 pb-3 md:pb-4 mt-6 md:mt-10">
-                            Continue Watching
-                        </h1>
-                        <p className="mt-3 md:mt-4 font-normal text-sm sm:text-base text-neutral-600 dark:text-neutral-300 max-w-lg text-center mx-auto px-4">
-                            Jump back into your favorite stories.
-                        </p>
-
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 3xl:grid-cols-10 4k:grid-cols-12 gap-3 sm:gap-4 md:gap-6 mt-6 md:mt-8">
-                            {continueWatchingItems.slice(0, 10).map((item) => (
+                    <section>
+                        <motion.div variants={itemVariants} className="flex items-center gap-3 mb-6">
+                            <div className="w-1 h-8 bg-primary rounded-full" />
+                            <h2 className="text-2xl md:text-3xl font-bold text-neutral-100">Continue Watching</h2>
+                        </motion.div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+                            {continueWatchingItems.slice(0, 6).map((item) => (
                                 <MovieCard
                                     key={item.id || item.tmdbId || item.path}
-                                    title={item.title || item.name} // Handle generic file names
+                                    title={item.title || item.name}
                                     year={item.year || item.release_date?.split('-')[0]}
                                     posterPath={item.poster_path || item.backdrop_path}
                                     onClick={() => handleItemClick(item)}
@@ -115,17 +161,18 @@ export const Home = () => {
                                 />
                             ))}
                         </div>
-                    </div>
+                    </section>
                 )}
 
-                {/* Movies Section */}
+                {/* Movies */}
                 {moviesOnly.length > 0 && (
-                    <div className="mt-8 md:mt-12 mb-6 md:mb-8">
-                        <h2 className="text-xl sm:text-2xl font-semibold text-neutral-900 dark:text-white mb-4 md:mb-6 pl-2 border-l-4 border-primary">
-                            Recent Movies
-                        </h2>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 3xl:grid-cols-10 4k:grid-cols-12 gap-3 sm:gap-4 md:gap-6">
-                            {moviesOnly.slice(0, 8).map((movie) => (
+                    <section>
+                        <motion.div variants={itemVariants} className="flex items-center gap-3 mb-6">
+                            <div className="w-1 h-8 bg-blue-500 rounded-full" />
+                            <h2 className="text-2xl md:text-3xl font-bold text-neutral-100">Recent Movies</h2>
+                        </motion.div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+                            {moviesOnly.slice(0, 12).map((movie) => (
                                 <MovieCard
                                     key={movie.id || movie.tmdbId || movie.path}
                                     title={movie.title}
@@ -135,17 +182,18 @@ export const Home = () => {
                                 />
                             ))}
                         </div>
-                    </div>
+                    </section>
                 )}
 
-                {/* TV Shows Section */}
+                {/* TV Shows */}
                 {tvShowsOnly.length > 0 && (
-                    <div className="mt-8 md:mt-12 mb-6 md:mb-8">
-                        <h2 className="text-xl sm:text-2xl font-semibold text-neutral-900 dark:text-white mb-4 md:mb-6 pl-2 border-l-4 border-orange-500">
-                            TV Shows
-                        </h2>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 3xl:grid-cols-10 4k:grid-cols-12 gap-3 sm:gap-4 md:gap-6">
-                            {tvShowsOnly.slice(0, 8).map((show) => (
+                    <section>
+                        <motion.div variants={itemVariants} className="flex items-center gap-3 mb-6">
+                            <div className="w-1 h-8 bg-orange-500 rounded-full" />
+                            <h2 className="text-2xl md:text-3xl font-bold text-neutral-100">TV Shows</h2>
+                        </motion.div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+                            {tvShowsOnly.slice(0, 12).map((show) => (
                                 <MovieCard
                                     key={show.groupKey || show.tmdbId || show.path}
                                     title={show.title}
@@ -155,27 +203,9 @@ export const Home = () => {
                                 />
                             ))}
                         </div>
-                    </div>
+                    </section>
                 )}
-
-                {/* Empty State */}
-                {displayItems.length === 0 && (
-                    <div className="flex flex-col items-center justify-center h-[50vh] text-center w-full px-4">
-                        <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-neutral-50 to-neutral-400 pb-3 md:pb-4">
-                            Welcome to Scooty
-                        </h1>
-                        <p className="mt-3 md:mt-4 font-normal text-sm sm:text-base text-neutral-300 max-w-lg text-center mx-auto">
-                            Add your media folders in Settings to get started.
-                        </p>
-                        <button
-                            onClick={() => navigate('/settings')}
-                            className="mt-6 md:mt-8 px-5 sm:px-6 py-2.5 sm:py-3 bg-primary rounded-full text-white text-sm sm:text-base font-medium hover:bg-primary/80 transition-colors"
-                        >
-                            Go to Settings
-                        </button>
-                    </div>
-                )}
-            </div>
+            </motion.div>
         </div>
     );
 };

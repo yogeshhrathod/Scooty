@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Home, Film, Tv, Folder, Settings, Search, LogOut } from 'lucide-react';
+import { Home, Film, Tv, Folder, Settings, Search } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Sidebar, SidebarBody, SidebarLink } from './ui/sidebar';
 import { Input } from './ui/input';
@@ -59,14 +59,7 @@ const TitleBar = () => {
 
             {/* Right Section: User Profile & Windows Controls */}
             <div className="flex items-center justify-end w-1/3 gap-4">
-                {/* User Profile - No Drag to allow clicking */}
-                <div className="flex items-center gap-4" style={{ WebkitAppRegion: 'no-drag' }}>
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-orange-400 p-[2px] cursor-pointer hover:scale-105 transition-transform">
-                        <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
-                            <img src="https://github.com/shadcn.png" alt="User" />
-                        </div>
-                    </div>
-                </div>
+
 
                 {/* Windows Controls */}
                 {!isMac && (
@@ -123,23 +116,7 @@ export const Layout = ({ children }) => {
                             </div>
                         </div>
                     </div>
-                    <div>
-                        <SidebarLink
-                            link={{
-                                label: "Yogesh",
-                                href: "#",
-                                icon: (
-                                    <img
-                                        src="https://github.com/shadcn.png"
-                                        className="h-7 w-7 flex-shrink-0 rounded-full"
-                                        width={50}
-                                        height={50}
-                                        alt="Avatar"
-                                    />
-                                ),
-                            }}
-                        />
-                    </div>
+
                 </SidebarBody>
             </Sidebar>
 

@@ -53,6 +53,8 @@ export const Details = () => {
     const navigate = useNavigate();
     const library = useStore((state) => state.library);
     const ignorePath = useStore((state) => state.ignorePath);
+    const history = useStore((state) => state.history);
+    const updateHistory = useStore((state) => state.updateHistory);
 
     // Find item by ID or Path
     const item = useMemo(() => {
@@ -96,6 +98,17 @@ export const Details = () => {
         // Fallback: return random movies
         return movies.slice(0, 8);
     }, [library, item]);
+
+    // Check history (Moved up before conditional return)
+    const historyItem = history[(item?.path || item?.id)];
+    const hasHistory = useMemo(() => {
+        if (!historyItem) return false;
+        const progress = typeof historyItem === 'number' ? historyItem : historyItem.progress;
+
+        // If watched less than 10 seconds, don't count as history
+        if (progress < 10) return false;
+        return progress > 0;
+    }, [historyItem]);
 
     // If it's a TV show, redirect to TV show details page
     React.useEffect(() => {
@@ -292,6 +305,7 @@ export const Details = () => {
                             transition={{ delay: 0.2 }}
                             className="flex flex-wrap items-center justify-center lg:justify-start gap-4 pt-2"
                         >
+                            {/* Play / Resume Button */}
                             <button
                                 onClick={() => {
                                     const playPath = encodeURIComponent(item.path || item.id || 'mock');
@@ -301,8 +315,25 @@ export const Details = () => {
                                 className="flex items-center gap-3 bg-white text-black px-10 py-4 rounded-full font-bold hover:bg-neutral-200 transition-all shadow-lg shadow-white/20 hover:scale-105"
                             >
                                 <Play className="w-6 h-6 fill-black" />
-                                Play
+                                {hasHistory ? 'Resume' : 'Play'}
                             </button>
+
+                            {/* Start Over Button (only if history exists) */}
+                            {hasHistory && (
+                                <button
+                                    onClick={() => {
+                                        if (window.confirm("Start from the beginning?")) {
+                                            updateHistory(item.path || item.id, 0); // Reset progress
+                                            const playPath = encodeURIComponent(item.path || item.id || 'mock');
+                                            const title = encodeURIComponent(item.title || item.name || 'Video');
+                                            navigate(`/play/${playPath}?title=${title}`);
+                                        }
+                                    }}
+                                    className="px-6 py-4 rounded-full font-medium border border-white/20 hover:bg-white/10 transition-colors text-white"
+                                >
+                                    Start Over
+                                </button>
+                            )}
                             <button
                                 className="p-4 rounded-full font-medium border border-white/20 hover:bg-white/10 transition-colors text-white group relative"
                                 title="Details"
