@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
-import { Play, ArrowLeft, Clock, Calendar, Star, User, Film, Clapperboard, Info, EyeOff } from 'lucide-react';
+import { Play, ArrowLeft, Clock, Calendar, Star, User, Film, Clapperboard, Info, EyeOff, Youtube, DollarSign, Activity, PenTool } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { MovieCard } from '../components/MovieCard';
 
@@ -40,13 +40,16 @@ const ActorCard = ({ actor, index }) => (
 );
 
 // Info Row Component
-const InfoRow = ({ icon: Icon, label, value }) => (
-    <div className="flex items-center gap-3 text-sm">
-        <Icon className="w-4 h-4 text-primary shrink-0" />
-        <span className="text-neutral-500">{label}</span>
-        <span className="text-white">{value}</span>
-    </div>
-);
+const InfoRow = ({ icon: Icon, label, value }) => {
+    if (!value) return null;
+    return (
+        <div className="flex items-center gap-3 text-sm">
+            <Icon className="w-4 h-4 text-primary shrink-0" />
+            <span className="text-neutral-500">{label}</span>
+            <span className="text-white">{value}</span>
+        </div>
+    );
+};
 
 export const Details = () => {
     const { id } = useParams();
@@ -74,18 +77,39 @@ export const Details = () => {
         return found;
     }, [library, id]);
 
-    // Get suggested movies (same genre or random from library)
+    // Format currency
+    const formatCurrency = (amount) => {
+        if (!amount) return null;
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
+    };
+
+    // Get suggestions
     const suggestions = useMemo(() => {
         if (!library || !item) return [];
 
-        // Filter only movies (not TV shows) and exclude current item
+        // 1. Prioritize official recommendations from TMDB if available (and matches library items)
+        if (item.recommendations && item.recommendations.length > 0) {
+            const libraryMap = new Map();
+            library.forEach(i => {
+                if (i.tmdbId) libraryMap.set(String(i.tmdbId), i);
+                if (i.title) libraryMap.set(i.title.toLowerCase(), i);
+            });
+
+            const matchedRecs = item.recommendations
+                .map(rec => libraryMap.get(String(rec.id)) || libraryMap.get(rec.title.toLowerCase()))
+                .filter(Boolean)
+                .filter(m => m.path !== item.path); // exclude self
+
+            if (matchedRecs.length > 0) return matchedRecs;
+        }
+
+        // 2. Fallback to genre matching
         const movies = library.filter(m =>
             m.type !== 'tv' &&
             m.tmdbId !== item.tmdbId &&
             m.path !== item.path
         );
 
-        // Try to find movies with matching genres
         if (item.genres && item.genres.length > 0) {
             const genreMatches = movies.filter(m =>
                 m.genres && m.genres.some(g => item.genres.includes(g))
@@ -95,7 +119,6 @@ export const Details = () => {
             }
         }
 
-        // Fallback: return random movies
         return movies.slice(0, 8);
     }, [library, item]);
 
@@ -104,8 +127,6 @@ export const Details = () => {
     const hasHistory = useMemo(() => {
         if (!historyItem) return false;
         const progress = typeof historyItem === 'number' ? historyItem : historyItem.progress;
-
-        // If watched less than 10 seconds, don't count as history
         if (progress < 10) return false;
         return progress > 0;
     }, [historyItem]);
@@ -175,7 +196,7 @@ export const Details = () => {
     };
 
     return (
-        <div className="relative min-h-screen bg-black -m-8">
+        <div className="relative min-h-screen bg-black -m-4 md:-m-8 lg:-mx-12 lg:-my-8 xl:-mx-16 2xl:-mx-20">
             {/* Backdrop Image with Blur */}
             <div className="absolute inset-0 h-[70vh] lg:h-[80vh] w-full overflow-hidden">
                 {item.backdrop_path || item.poster_path ? (
@@ -210,13 +231,19 @@ export const Details = () => {
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ type: "spring", duration: 0.6 }}
-                        className="w-56 md:w-72 lg:w-80 xl:w-96 shrink-0 rounded-2xl overflow-hidden shadow-2xl shadow-black/50 border border-white/10 mx-auto lg:mx-0"
+                        className="w-56 md:w-72 lg:w-80 xl:w-96 shrink-0 rounded-2xl overflow-hidden shadow-2xl shadow-black/50 border border-white/10 mx-auto lg:mx-0 relative group"
                     >
                         {item.poster_path ? (
                             <img src={item.poster_path} alt={item.title} className="w-full h-full object-cover" />
                         ) : (
                             <div className="w-full aspect-[2/3] bg-neutral-800 flex items-center justify-center text-neutral-500">
                                 No Poster
+                            </div>
+                        )}
+                        {/* Status Badge */}
+                        {item.status && (
+                            <div className="absolute top-4 right-4 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-xs font-bold text-white border border-white/10">
+                                {item.status}
                             </div>
                         )}
                     </motion.div>
@@ -264,11 +291,18 @@ export const Details = () => {
                             transition={{ delay: 0.1 }}
                             className="flex flex-wrap items-center justify-center lg:justify-start gap-4 md:gap-6 text-sm md:text-base text-neutral-300"
                         >
+                            {/* Certification */}
+                            {item.certification && (
+                                <span className="px-2 py-0.5 border border-white/30 rounded text-white/80 text-xs font-bold">
+                                    {item.certification}
+                                </span>
+                            )}
+
                             <span className="flex items-center gap-2">
                                 <Calendar className="w-4 h-4 text-primary" />
                                 {item.year || item.release_date?.substring(0, 4) || "Unknown Year"}
                             </span>
-                            {item.runtime && (
+                            {item.runtime > 0 && (
                                 <span className="flex items-center gap-2">
                                     <Clock className="w-4 h-4 text-primary" />
                                     {Math.floor(item.runtime / 60)}h {item.runtime % 60}m
@@ -291,9 +325,16 @@ export const Details = () => {
                                 className="flex flex-wrap gap-2 justify-center lg:justify-start"
                             >
                                 {item.genres.map((genre, idx) => (
-                                    <span key={idx} className="px-4 py-1.5 bg-white/5 hover:bg-white/10 transition-colors rounded-full text-sm text-white/80 border border-white/10">
+                                    <button
+                                        key={idx}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigate(`/genres/${encodeURIComponent(genre)}`);
+                                        }}
+                                        className="px-4 py-1.5 bg-white/5 hover:bg-primary/20 hover:border-primary/50 transition-colors rounded-full text-sm text-white/80 hover:text-white border border-white/10 cursor-pointer"
+                                    >
                                         {genre}
-                                    </span>
+                                    </button>
                                 ))}
                             </motion.div>
                         )}
@@ -318,6 +359,17 @@ export const Details = () => {
                                 {hasHistory ? 'Resume' : 'Play'}
                             </button>
 
+                            {/* Trailer Button */}
+                            {item.trailer && (
+                                <button
+                                    onClick={() => window.open(item.trailer, '_blank')}
+                                    className="flex items-center gap-2 px-6 py-4 rounded-full font-bold bg-red-600 text-white hover:bg-red-700 transition-all shadow-lg shadow-red-900/40"
+                                >
+                                    <Youtube className="w-5 h-5" />
+                                    Trailer
+                                </button>
+                            )}
+
                             {/* Start Over Button (only if history exists) */}
                             {hasHistory && (
                                 <button
@@ -334,12 +386,6 @@ export const Details = () => {
                                     Start Over
                                 </button>
                             )}
-                            <button
-                                className="p-4 rounded-full font-medium border border-white/20 hover:bg-white/10 transition-colors text-white group relative"
-                                title="Details"
-                            >
-                                <Info className="w-6 h-6" />
-                            </button>
 
                             <button
                                 onClick={handleExclude}
@@ -350,18 +396,46 @@ export const Details = () => {
                             </button>
                         </motion.div>
 
-                        {/* Director & Studio */}
+                        {/* Expanded Credits & Info */}
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ delay: 0.25 }}
-                            className="flex flex-wrap gap-6 pt-4 justify-center lg:justify-start"
+                            className="bg-white/5 rounded-xl p-5 backdrop-blur-sm border border-white/5"
                         >
-                            {item.director && (
-                                <InfoRow icon={Clapperboard} label="Director" value={item.director} />
-                            )}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                                {item.director && (
+                                    <div className="flex flex-col gap-1">
+                                        <div className="flex items-center gap-2 text-primary text-sm font-medium"><Clapperboard className="w-3 h-3" /> Director</div>
+                                        <div className="text-white text-sm">{item.director}</div>
+                                    </div>
+                                )}
+                                {item.writers && item.writers.length > 0 && (
+                                    <div className="flex flex-col gap-1">
+                                        <div className="flex items-center gap-2 text-primary text-sm font-medium"><PenTool className="w-3 h-3" /> Writer</div>
+                                        <div className="text-white text-sm">{item.writers.join(', ')}</div>
+                                    </div>
+                                )}
+                                {item.budget > 0 && (
+                                    <div className="flex flex-col gap-1">
+                                        <div className="flex items-center gap-2 text-primary text-sm font-medium"><DollarSign className="w-3 h-3" /> Budget</div>
+                                        <div className="text-white text-sm text-opacity-80">{formatCurrency(item.budget)}</div>
+                                    </div>
+                                )}
+                                {item.revenue > 0 && (
+                                    <div className="flex flex-col gap-1">
+                                        <div className="flex items-center gap-2 text-primary text-sm font-medium"><Activity className="w-3 h-3" /> Revenue</div>
+                                        <div className="text-white text-sm text-opacity-80">{formatCurrency(item.revenue)}</div>
+                                    </div>
+                                )}
+                            </div>
                             {item.production_companies && item.production_companies.length > 0 && (
-                                <InfoRow icon={Film} label="Studio" value={item.production_companies[0]} />
+                                <div className="mt-4 pt-4 border-t border-white/5 flex flex-wrap gap-20">
+                                    <div className="flex flex-col gap-1">
+                                        <div className="flex items-center gap-2 text-neutral-500 text-xs font-medium uppercase tracking-wider">Production</div>
+                                        <div className="text-white text-sm">{item.production_companies.join(', ')}</div>
+                                    </div>
+                                </div>
                             )}
                         </motion.div>
                     </div>
@@ -418,7 +492,10 @@ export const Details = () => {
                         transition={{ delay: 0.4 }}
                         className="mt-20 pb-20"
                     >
-                        <h2 className="text-xl font-semibold text-white mb-6">More Like This</h2>
+                        <div className="flex items-center gap-3 mb-6">
+                            <Film className="text-primary w-6 h-6" />
+                            <h2 className="text-xl font-semibold text-white">More Like This</h2>
+                        </div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-4 md:gap-6">
                             {suggestions.map((movie) => (
                                 <MovieCard

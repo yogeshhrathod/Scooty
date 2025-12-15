@@ -11,6 +11,15 @@ export const ftpService = {
         }
     },
 
+    async test(config) {
+        try {
+            return await ipcRenderer.invoke('ftp-test', config);
+        } catch (e) {
+            console.error("FTP Test failed", e);
+            throw e;
+        }
+    },
+
     async getStreamUrlBase() {
         return await ipcRenderer.invoke('get-stream-url');
     }

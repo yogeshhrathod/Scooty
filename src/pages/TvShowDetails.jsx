@@ -1,8 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
-import { Play, ArrowLeft, Clock, Calendar, Star, ChevronRight, Tv, Info, User } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Play, ArrowLeft, Clock, Calendar, Star, ChevronRight, Tv, Info, User, Youtube, EyeOff, ChevronDown } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { MovieCard } from '../components/MovieCard';
 
 // Quality Badge Component
@@ -12,38 +12,11 @@ const QualityBadge = ({ label, color = "bg-white/10" }) => (
     </span>
 );
 
-// Actor Card Component
-const ActorCard = ({ actor, index }) => (
-    <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 + index * 0.05 }}
-        className="flex flex-col items-center text-center group cursor-pointer shrink-0"
-    >
-        <div className="w-20 h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 rounded-full overflow-hidden bg-neutral-800 border-2 border-transparent group-hover:border-primary transition-colors shadow-lg">
-            {actor.profile_path ? (
-                <img
-                    src={actor.profile_path}
-                    alt={actor.name}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                />
-            ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-neutral-700 to-neutral-800">
-                    <User className="w-8 h-8 text-neutral-500" />
-                </div>
-            )}
-        </div>
-        <p className="mt-2 text-sm font-medium text-white truncate max-w-[100px] lg:max-w-[120px]">{actor.name}</p>
-        <p className="text-xs text-neutral-500 truncate max-w-[100px] lg:max-w-[120px]">{actor.character}</p>
-    </motion.div>
-);
-
 export const TvShowDetails = () => {
     const { showId } = useParams();
     const navigate = useNavigate();
     const library = useStore((state) => state.library);
-
+    const ignorePath = useStore((state) => state.ignorePath);
     const history = useStore((state) => state.history);
 
     // Find all episodes for this show
@@ -80,7 +53,6 @@ export const TvShowDetails = () => {
         episodes.forEach(ep => {
             const h = history[ep.path];
             if (h) {
-                // Check if it's really watched (progress > 10s)
                 const progress = typeof h === 'number' ? h : h.progress;
                 const lastTime = typeof h === 'number' ? 0 : h.lastWatched || 0;
 
@@ -101,33 +73,6 @@ export const TvShowDetails = () => {
             lastWatchedEpisode: targetEpisode
         };
     }, [library, showId, history]);
-
-    // Get suggested TV shows (other shows in library)
-    const suggestions = useMemo(() => {
-        if (!library || !show) return [];
-
-        // Get unique TV shows (grouped by tmdbId or showTitle)
-        const showsMap = new Map();
-        library
-            .filter(item => item.type === 'tv')
-            .forEach(item => {
-                const key = item.tmdbId ? `tv-${item.tmdbId}` : `tv-${item.showTitle || item.title}`;
-                // Exclude current show
-                if (String(item.tmdbId) === String(show.tmdbId) ||
-                    item.showTitle === show.showTitle) {
-                    return;
-                }
-                if (!showsMap.has(key)) {
-                    showsMap.set(key, {
-                        ...item,
-                        title: item.showTitle || item.title,
-                        groupKey: key
-                    });
-                }
-            });
-
-        return Array.from(showsMap.values()).slice(0, 8);
-    }, [library, show]);
 
     // Detect quality from filename
     const qualityBadges = useMemo(() => {
@@ -154,6 +99,13 @@ export const TvShowDetails = () => {
         return badges;
     }, [show]);
 
+    const handleExclude = () => {
+        if (window.confirm("Are you sure you want to exclude this show from your library?")) {
+            if (show) ignorePath(show.path);
+            navigate(-1);
+        }
+    };
+
     if (!show) {
         return (
             <div className="relative min-h-screen bg-black -m-8 flex items-center justify-center">
@@ -172,7 +124,7 @@ export const TvShowDetails = () => {
     }
 
     const totalEpisodes = allEpisodes.length;
-    const seasonCount = Object.keys(seasons).length;
+    const sortedSeasons = Object.keys(seasons).sort((a, b) => parseInt(a) - parseInt(b));
 
     return (
         <div className="relative min-h-screen bg-black -m-8">
@@ -210,7 +162,7 @@ export const TvShowDetails = () => {
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ type: "spring", duration: 0.6 }}
-                        className="w-48 md:w-64 lg:w-72 xl:w-80 shrink-0 rounded-2xl overflow-hidden shadow-2xl shadow-black/50 border border-white/10 mx-auto lg:mx-0"
+                        className="w-48 md:w-64 lg:w-72 xl:w-80 shrink-0 rounded-2xl overflow-hidden shadow-2xl shadow-black/50 border border-white/10 mx-auto lg:mx-0 relative"
                     >
                         {show.poster_path ? (
                             <img src={show.poster_path} alt={show.showTitle || show.title} className="w-full h-full object-cover" />
@@ -219,32 +171,28 @@ export const TvShowDetails = () => {
                                 No Poster
                             </div>
                         )}
+                        {/* Status Badge */}
+                        {show.status && (
+                            <div className="absolute top-4 right-4 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-xs font-bold text-white border border-white/10">
+                                {show.status}
+                            </div>
+                        )}
                     </motion.div>
 
                     {/* Content */}
                     <div className="flex-1 space-y-5 text-center lg:text-left">
-                        {/* Quality Badges */}
-                        {qualityBadges.length > 0 && (
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                className="flex flex-wrap gap-2 justify-center lg:justify-start"
-                            >
-                                {qualityBadges.map((badge, idx) => (
-                                    <QualityBadge key={idx} label={badge.label} color={badge.color} />
-                                ))}
-                            </motion.div>
-                        )}
-
-                        {/* TV Badge */}
+                        {/* Quality & Type Badges */}
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            className="flex items-center gap-2 justify-center lg:justify-start"
+                            className="flex flex-wrap gap-2 justify-center lg:justify-start items-center"
                         >
-                            <span className="flex items-center gap-1.5 px-3 py-1 bg-orange-500/20 text-orange-400 rounded-full text-xs font-medium">
+                            <span className="flex items-center gap-1.5 px-3 py-1 bg-orange-500/20 text-orange-400 rounded-full text-xs font-medium border border-orange-500/20">
                                 <Tv className="w-3 h-3" /> TV Series
                             </span>
+                            {qualityBadges.map((badge, idx) => (
+                                <QualityBadge key={idx} label={badge.label} color={badge.color} />
+                            ))}
                         </motion.div>
 
                         {/* Title */}
@@ -263,13 +211,20 @@ export const TvShowDetails = () => {
                             transition={{ delay: 0.1 }}
                             className="flex flex-wrap items-center justify-center lg:justify-start gap-4 md:gap-6 text-sm md:text-base text-neutral-300"
                         >
+                            {/* Certification */}
+                            {show.certification && (
+                                <span className="px-2 py-0.5 border border-white/30 rounded text-white/80 text-xs font-bold">
+                                    {show.certification}
+                                </span>
+                            )}
+
                             <span className="flex items-center gap-2">
                                 <Calendar className="w-4 h-4 text-primary" />
                                 {show.year || "Unknown Year"}
                             </span>
                             <span className="flex items-center gap-2">
                                 <Clock className="w-4 h-4 text-primary" />
-                                {seasonCount} Season{seasonCount !== 1 ? 's' : ''} • {totalEpisodes} Episode{totalEpisodes !== 1 ? 's' : ''}
+                                {sortedSeasons.length} Season{sortedSeasons.length !== 1 ? 's' : ''} • {totalEpisodes} Episode{totalEpisodes !== 1 ? 's' : ''}
                             </span>
                             {show.vote_average > 0 && (
                                 <span className="flex items-center gap-2 bg-yellow-500/10 px-3 py-1 rounded-full">
@@ -298,9 +253,16 @@ export const TvShowDetails = () => {
                                 className="flex flex-wrap gap-2 justify-center lg:justify-start"
                             >
                                 {show.genres.map((genre, idx) => (
-                                    <span key={idx} className="px-4 py-1.5 bg-white/5 hover:bg-white/10 transition-colors rounded-full text-sm text-white/80 border border-white/10">
+                                    <button
+                                        key={idx}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigate(`/genres/${encodeURIComponent(genre)}`);
+                                        }}
+                                        className="px-4 py-1.5 bg-white/5 hover:bg-primary/20 hover:border-primary/50 transition-colors rounded-full text-sm text-white/80 hover:text-white border border-white/10 cursor-pointer"
+                                    >
                                         {genre}
-                                    </span>
+                                    </button>
                                 ))}
                             </motion.div>
                         )}
@@ -338,7 +300,8 @@ export const TvShowDetails = () => {
                                     const ep = lastWatchedEpisode || allEpisodes[0];
                                     if (!ep) return;
                                     const playPath = encodeURIComponent(ep.path || ep.id || 'mock');
-                                    const title = encodeURIComponent(`${show.showTitle || show.title} - S${ep.season || 1}E${ep.episode || 1}`);
+                                    const epTitleStr = ep.title && ep.title !== `Episode ${ep.episode}` && ep.title !== ep.name ? ` - ${ep.title}` : '';
+                                    const title = encodeURIComponent(`${show.showTitle || show.title} - S${ep.season || 1}E${ep.episode || 1}${epTitleStr}`);
                                     navigate(`/play/${playPath}?title=${title}`);
                                 }}
                                 className="flex items-center gap-3 bg-white text-black px-10 py-4 rounded-full font-bold hover:bg-neutral-200 transition-all shadow-lg shadow-white/20 hover:scale-105"
@@ -349,122 +312,124 @@ export const TvShowDetails = () => {
                                     : `Play S${allEpisodes[0]?.season || 1}E${allEpisodes[0]?.episode || 1}`
                                 }
                             </button>
-                            <button className="p-4 rounded-full font-medium border border-white/20 hover:bg-white/10 transition-colors text-white">
-                                <Info className="w-6 h-6" />
+
+                            {/* Trailer Button */}
+                            {show.trailer && (
+                                <button
+                                    onClick={() => window.open(show.trailer, '_blank')}
+                                    className="flex items-center gap-2 px-6 py-4 rounded-full font-bold bg-red-600 text-white hover:bg-red-700 transition-all shadow-lg shadow-red-900/40"
+                                >
+                                    <Youtube className="w-5 h-5" />
+                                    Trailer
+                                </button>
+                            )}
+
+                            <button
+                                onClick={handleExclude}
+                                className="p-4 rounded-full font-medium border border-red-500/30 text-red-500 hover:bg-red-500/10 transition-colors group"
+                                title="Exclude from Library"
+                            >
+                                <EyeOff className="w-6 h-6" />
                             </button>
                         </motion.div>
                     </div>
                 </div>
 
-                {/* Episodes Section */}
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.4 }}
-                    className="mt-20"
-                >
+                {/* Seasons & Episodes List */}
+                <div className="mt-16 pb-20 max-w-5xl">
                     <h2 className="text-2xl font-bold text-white mb-8">Episodes</h2>
                     <div className="space-y-12">
-                        {Object.entries(seasons).map(([seasonNum, eps]) => (
-                            <div key={seasonNum}>
-                                <h3 className="text-xl font-medium text-white/70 mb-4 flex items-center gap-3">
-                                    <span className="px-3 py-1 bg-white/10 rounded-lg text-sm">Season {seasonNum}</span>
-                                    <span className="text-sm text-neutral-500">{eps.length} Episodes</span>
-                                </h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
-                                    {eps.map((ep, idx) => (
-                                        <motion.div
-                                            key={ep.id || ep.path}
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: 0.5 + idx * 0.02 }}
-                                            whileHover={{ scale: 1.02 }}
-                                            onClick={() => {
-                                                const playPath = encodeURIComponent(ep.path || ep.id);
-                                                const title = encodeURIComponent(`${show.showTitle || show.title} - S${ep.season || 1}E${ep.episode || 1} - ${ep.title || ''}`);
-                                                navigate(`/play/${playPath}?title=${title}`);
-                                            }}
-                                            className="flex gap-4 p-3 rounded-xl cursor-pointer transition-all border bg-white/5 border-transparent hover:bg-white/10 hover:border-white/10 group"
-                                        >
-                                            {/* Thumbnail */}
-                                            <div className="w-28 lg:w-32 xl:w-36 aspect-video bg-neutral-800 rounded-lg overflow-hidden shrink-0 relative">
-                                                {ep.still_path || ep.backdrop_path || ep.poster_path ? (
-                                                    <img
-                                                        src={ep.still_path || ep.backdrop_path || ep.poster_path}
-                                                        alt={ep.title}
-                                                        className="w-full h-full object-cover"
-                                                        loading="lazy"
-                                                    />
-                                                ) : (
-                                                    <div className="w-full h-full flex items-center justify-center text-xs text-neutral-500">
-                                                        No Image
+                        {sortedSeasons.map((seasonNum) => {
+                            const eps = seasons[seasonNum];
+                            return (
+                                <div key={seasonNum}>
+                                    <div className="flex items-center gap-3 mb-6 sticky top-0 bg-black/90 backdrop-blur-sm z-20 py-4 border-b border-white/5">
+                                        <div className="w-1 h-6 bg-primary rounded-full" />
+                                        <h3 className="text-xl font-semibold text-white">Season {seasonNum}</h3>
+                                        <span className="text-sm text-neutral-500">{eps.length} Episodes</span>
+                                    </div>
+                                    <div className="grid gap-4">
+                                        {eps.map((ep, idx) => {
+                                            const isWatched = history[ep.path]?.progress > (ep.duration * 0.9) || false;
+                                            const progress = history[ep.path]?.progress || 0;
+
+                                            // Determine correct title and overview (fallback to generic if not improved)
+                                            const epTitle = ep.title !== ep.name ? ep.title : `Episode ${ep.episode}`;
+                                            const epOverview = ep.overview && ep.overview !== show.overview ? ep.overview : `Episode ${ep.episode} from Season ${ep.season}`;
+
+                                            return (
+                                                <motion.div
+                                                    key={ep.id || ep.path}
+                                                    initial={{ opacity: 0, y: 10 }}
+                                                    whileInView={{ opacity: 1, y: 0 }}
+                                                    viewport={{ once: true }}
+                                                    transition={{ delay: idx * 0.05 }}
+                                                    onClick={() => {
+                                                        const playPath = encodeURIComponent(ep.path || ep.id || 'mock');
+                                                        const epTitleStr = ep.title && ep.title !== `Episode ${ep.episode}` && ep.title !== ep.name ? ` - ${ep.title}` : '';
+                                                        const title = encodeURIComponent(`${show.showTitle || show.title} - S${ep.season}E${ep.episode}${epTitleStr}`);
+                                                        navigate(`/play/${playPath}?title=${title}`);
+                                                    }}
+                                                    className="group flex gap-4 md:gap-6 p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-primary/30 transition-all cursor-pointer relative overflow-hidden"
+                                                >
+                                                    {/* Thumbnail */}
+                                                    <div className="w-32 md:w-48 aspect-video shrink-0 rounded-lg overflow-hidden bg-neutral-900 relative">
+                                                        {ep.still_path || show.backdrop_path ? (
+                                                            <img
+                                                                src={ep.still_path ? `https://image.tmdb.org/t/p/w300${ep.still_path}` : (show.backdrop_path || show.poster_path)}
+                                                                alt={`S${ep.season}E${ep.episode}`}
+                                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center text-neutral-600">
+                                                                <Tv className="w-8 h-8 opacity-20" />
+                                                            </div>
+                                                        )}
+
+                                                        <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                                            <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-lg transform scale-0 group-hover:scale-100 transition-transform">
+                                                                <Play className="w-5 h-5 fill-white text-white ml-0.5" />
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Progress bar */}
+                                                        {progress > 0 && (
+                                                            <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
+                                                                <div
+                                                                    className="h-full bg-primary"
+                                                                    style={{ width: `${Math.min(100, (progress / (ep.duration || 1)) * 100)}%` }}
+                                                                />
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                )}
-                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                    <Play className="w-8 h-8 text-white fill-white" />
-                                                </div>
-                                            </div>
 
-                                            <div className="flex flex-col justify-center min-w-0 flex-1">
-                                                <span className="text-sm font-bold text-white line-clamp-2 pr-2 leading-snug">
-                                                    {ep.episode}. {ep.title || `Episode ${ep.episode}`}
-                                                </span>
-                                                <span className="text-xs text-neutral-400 line-clamp-2 mt-1">
-                                                    {ep.overview || "No overview available."}
-                                                </span>
-                                            </div>
-
-                                            <ChevronRight className="w-5 h-5 text-neutral-500 self-center flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                        </motion.div>
-                                    ))}
+                                                    {/* Info */}
+                                                    <div className="flex-1 flex flex-col justify-center min-w-0">
+                                                        <div className="flex items-start justify-between gap-4">
+                                                            <div>
+                                                                <h4 className="text-base md:text-lg font-semibold text-white group-hover:text-primary transition-colors truncate pr-4">
+                                                                    {ep.episode}. {epTitle}
+                                                                </h4>
+                                                                <div className="flex items-center gap-2 text-xs text-neutral-500 mt-1 mb-2">
+                                                                    {ep.air_date && <span>{ep.air_date}</span>}
+                                                                    {ep.runtime && <span>• {ep.runtime} min</span>}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <p className="text-sm text-neutral-400 line-clamp-2 md:line-clamp-3">
+                                                            {epOverview}
+                                                        </p>
+                                                    </div>
+                                                </motion.div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
-                </motion.div>
+                </div>
 
-                {/* Cast Section */}
-                {show.castDetails && show.castDetails.length > 0 && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.5 }}
-                        className="mt-16"
-                    >
-                        <h2 className="text-xl font-semibold text-white mb-6">Cast</h2>
-                        <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide">
-                            {show.castDetails.map((actor, idx) => (
-                                <ActorCard key={actor.id || idx} actor={actor} index={idx} />
-                            ))}
-                        </div>
-                    </motion.div>
-                )}
-
-                {/* More TV Shows Section */}
-                {suggestions.length > 0 && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.6 }}
-                        className="mt-20 pb-20"
-                    >
-                        <h2 className="text-xl font-semibold text-white mb-6">More TV Shows</h2>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-4 md:gap-6">
-                            {suggestions.map((tvShow) => (
-                                <MovieCard
-                                    key={tvShow.groupKey || tvShow.tmdbId || tvShow.path}
-                                    title={tvShow.title}
-                                    year={tvShow.year}
-                                    posterPath={tvShow.poster_path}
-                                    onClick={() => navigate(`/tv/${tvShow.tmdbId || encodeURIComponent(tvShow.showTitle || tvShow.title)}`)}
-                                />
-                            ))}
-                        </div>
-                    </motion.div>
-                )}
-
-                {/* Spacer for pages with no suggestions */}
-                {suggestions.length === 0 && <div className="pb-20" />}
             </div>
         </div>
     );

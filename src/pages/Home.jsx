@@ -1,5 +1,4 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Spotlight } from '../components/ui/spotlight';
 import { MovieCard } from '../components/MovieCard';
 import { Hero } from '../components/Hero';
 import { useStore } from '../store/useStore';
@@ -103,7 +102,6 @@ export const Home = () => {
     if (displayItems.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[80vh] text-center w-full px-4 relative overflow-hidden">
-                <Spotlight className="-top-40 left-0 md:left-60 md:-top-20" fill="white" />
                 <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -129,8 +127,6 @@ export const Home = () => {
 
     return (
         <div className="relative w-full min-h-screen pb-20 overflow-x-hidden">
-            <Spotlight className="-top-40 left-0 md:left-60 md:-top-20" fill="white" />
-
             {/* Hero Section */}
             <div className="px-4 md:px-8 lg:px-12 pt-6 mb-12">
                 <Hero item={heroItem} />

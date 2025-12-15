@@ -37,6 +37,7 @@ import {
 import { cn } from '../lib/utils';
 import { useStore } from '../store/useStore';
 import { motion, AnimatePresence } from 'framer-motion';
+import { AddFtpModal } from '../components/AddFtpModal';
 
 export const Settings = () => {
     const library = useStore((state) => state.library);
@@ -205,6 +206,14 @@ export const Settings = () => {
                                     >
                                         <Plus className="w-5 h-5" />
                                         {isSyncing ? 'Scanning...' : 'Add Local Folder'}
+                                    </button>
+                                    <button
+                                        onClick={() => setIsFtpModalOpen(true)}
+                                        disabled={isSyncing}
+                                        className="w-full py-3 border border-dashed border-neutral-300 dark:border-white/10 rounded-xl text-neutral-500 hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all flex items-center justify-center gap-2 font-medium disabled:opacity-50 disabled:pointer-events-none"
+                                    >
+                                        <Globe className="w-5 h-5" />
+                                        Add FTP Source
                                     </button>
                                 </div>
                             </SettingsSection>
@@ -395,10 +404,14 @@ export const Settings = () => {
         }
     ];
 
+    // FTP Modal State
+    const [isFtpModalOpen, setIsFtpModalOpen] = useState(false);
+
     return (
         <div className="min-h-screen pb-20 relative flex flex-col w-full items-start justify-start px-2 sm:px-4">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-900 dark:text-white mb-6 md:mb-8 tracking-tight">Settings</h2>
             <Tabs tabs={tabs} containerClassName="mb-10 w-full" contentClassName="h-[40rem] md:h-[50rem]" />
+            <AddFtpModal isOpen={isFtpModalOpen} onClose={() => setIsFtpModalOpen(false)} />
         </div>
     );
 };

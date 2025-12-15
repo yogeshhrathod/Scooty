@@ -89,22 +89,28 @@ export const metadataService = {
                     match = res.data.results[0];
                     console.log(`[Metadata] Found TV Match: ${match.name} (ID: ${match.id})`);
 
-                    // Fetch TV show details and credits
+                    // Fetch details with append_to_response
                     let showDetails = {};
-                    let showCredits = {};
+                    let episodeData = {};
+
                     try {
-                        const [detailsRes, creditsRes] = await Promise.all([
-                            axios.get(`${BASE_URL}/tv/${match.id}?api_key=${API_KEY}`),
-                            axios.get(`${BASE_URL}/tv/${match.id}/credits?api_key=${API_KEY}`)
-                        ]);
+                        const detailsRes = await axios.get(`${BASE_URL}/tv/${match.id}?api_key=${API_KEY}&append_to_response=credits,videos,content_ratings,recommendations`);
                         showDetails = detailsRes.data;
-                        showCredits = creditsRes.data;
+
+                        // Get episode-specific data if available
+                        if (season && episode) {
+                            const epReq = await axios.get(`${BASE_URL}/tv/${match.id}/season/${season}/episode/${episode}?api_key=${API_KEY}`);
+                            episodeData = epReq.data;
+                            console.log(`[Metadata] Found Episode: ${episodeData.name}`);
+                        }
                     } catch (err) {
-                        console.warn(`[Metadata] Failed to fetch TV show details: ${err.message}`);
+                        console.warn(`[Metadata] Failed to fetch TV details: ${err.message}`);
+                        // Fallback to basic match data if details fail
+                        showDetails = match;
                     }
 
-                    // Get detailed cast info with profile photos
-                    const castWithPhotos = (showCredits.cast || []).slice(0, 10).map(c => ({
+                    // Process Cast
+                    const castWithPhotos = (showDetails.credits?.cast || []).slice(0, 15).map(c => ({
                         id: c.id,
                         name: c.name,
                         character: c.character,
@@ -112,17 +118,11 @@ export const metadataService = {
                         order: c.order
                     }));
 
-                    // Get episode-specific data if available
-                    let episodeData = {};
-                    if (season && episode) {
-                        try {
-                            const epReq = await axios.get(`${BASE_URL}/tv/${match.id}/season/${season}/episode/${episode}?api_key=${API_KEY}`);
-                            episodeData = epReq.data;
-                            console.log(`[Metadata] Found Episode: ${episodeData.name}`);
-                        } catch (err) {
-                            console.warn(`[Metadata] Failed to fetch specific episode details: ${err.message}`);
-                        }
-                    }
+                    // Process Certification
+                    const rating = showDetails.content_ratings?.results?.find(r => r.iso_3166_1 === 'US')?.rating || '';
+
+                    // Process Trailer
+                    const trailer = showDetails.videos?.results?.find(v => v.type === 'Trailer' && v.site === 'YouTube');
 
                     return {
                         ...file,
@@ -130,7 +130,7 @@ export const metadataService = {
                         title: episodeData.name || match.name,
                         showTitle: match.name,
                         tagline: showDetails.tagline,
-                        overview: episodeData.overview || match.overview,
+                        overview: episodeData.overview || showDetails.overview || match.overview,
                         poster_path: match.poster_path ? `https://image.tmdb.org/t/p/w500${match.poster_path}` : null,
                         still_path: episodeData.still_path ? `https://image.tmdb.org/t/p/w500${episodeData.still_path}` : null,
                         backdrop_path: match.backdrop_path ? `https://image.tmdb.org/t/p/original${match.backdrop_path}` : null,
@@ -138,12 +138,16 @@ export const metadataService = {
                         year: year || (match.first_air_date ? match.first_air_date.substring(0, 4) : null),
                         vote_average: episodeData.vote_average || match.vote_average,
                         genres: (showDetails.genres || []).map(g => g.name),
-                        cast: (showCredits.cast || []).slice(0, 5).map(c => c.name),
+                        cast: (showDetails.credits?.cast || []).slice(0, 5).map(c => c.name),
                         castDetails: castWithPhotos,
                         networks: (showDetails.networks || []).slice(0, 2).map(n => n.name),
                         created_by: (showDetails.created_by || []).slice(0, 2).map(c => c.name),
                         number_of_seasons: showDetails.number_of_seasons,
                         number_of_episodes: showDetails.number_of_episodes,
+                        status: showDetails.status,
+                        certification: rating,
+                        trailer: trailer ? `https://www.youtube.com/watch?v=${trailer.key}` : null,
+                        recommendations: (showDetails.recommendations?.results || []).slice(0, 10),
                         type: 'tv',
                         season,
                         episode,
@@ -170,17 +174,18 @@ export const metadataService = {
                     match = res.data.results[0];
                     console.log(`[Metadata] Found Movie Match: ${match.title}`);
 
-                    // Fetch full details
-                    const [details, credits] = await Promise.all([
-                        axios.get(`${BASE_URL}/movie/${match.id}?api_key=${API_KEY}`),
-                        axios.get(`${BASE_URL}/movie/${match.id}/credits?api_key=${API_KEY}`)
-                    ]);
+                    // Fetch details with append_to_response
+                    const detailsRes = await axios.get(`${BASE_URL}/movie/${match.id}?api_key=${API_KEY}&append_to_response=credits,videos,release_dates,recommendations`);
+                    const details = detailsRes.data;
 
                     // Extract director from crew
-                    const director = credits.data.crew.find(c => c.job === 'Director');
+                    const director = details.credits?.crew?.find(c => c.job === 'Director');
 
-                    // Get detailed cast info with profile photos
-                    const castWithPhotos = credits.data.cast.slice(0, 10).map(c => ({
+                    // Extract Writer
+                    const writers = details.credits?.crew?.filter(c => ['Screenplay', 'Writer', 'Story'].includes(c.job)).slice(0, 2).map(c => c.name) || [];
+
+                    // Get detailed cast info
+                    const castWithPhotos = (details.credits?.cast || []).slice(0, 15).map(c => ({
                         id: c.id,
                         name: c.name,
                         character: c.character,
@@ -188,26 +193,37 @@ export const metadataService = {
                         order: c.order
                     }));
 
+                    // Get Certification (US)
+                    const releaseDates = details.release_dates?.results?.find(r => r.iso_3166_1 === 'US');
+                    const certification = releaseDates?.release_dates?.find(d => d.certification)?.certification || '';
+
+                    // Get Trailer
+                    const trailer = details.videos?.results?.find(v => v.type === 'Trailer' && v.site === 'YouTube');
+
                     return {
                         ...file,
                         tmdbId: match.id,
                         title: match.title,
-                        tagline: details.data.tagline,
+                        tagline: details.tagline,
                         overview: match.overview,
                         poster_path: match.poster_path ? `https://image.tmdb.org/t/p/w500${match.poster_path}` : null,
                         backdrop_path: match.backdrop_path ? `https://image.tmdb.org/t/p/original${match.backdrop_path}` : null,
                         release_date: match.release_date,
                         year: year || (match.release_date ? match.release_date.substring(0, 4) : null),
                         vote_average: match.vote_average,
-                        runtime: details.data.runtime,
-                        cast: credits.data.cast.slice(0, 5).map(c => c.name),
+                        runtime: details.runtime,
+                        cast: (details.credits?.cast || []).slice(0, 5).map(c => c.name),
                         castDetails: castWithPhotos,
                         director: director ? director.name : null,
-                        genres: details.data.genres.map(g => g.name),
-                        production_companies: details.data.production_companies.slice(0, 2).map(c => c.name),
-                        budget: details.data.budget,
-                        revenue: details.data.revenue,
-                        status: details.data.status,
+                        writers: writers,
+                        genres: (details.genres || []).map(g => g.name),
+                        production_companies: (details.production_companies || []).slice(0, 2).map(c => c.name),
+                        budget: details.budget,
+                        revenue: details.revenue,
+                        status: details.status,
+                        certification: certification,
+                        trailer: trailer ? `https://www.youtube.com/watch?v=${trailer.key}` : null,
+                        recommendations: (details.recommendations?.results || []).slice(0, 10),
                         type: 'movie',
                         identified: true
                     };
@@ -223,7 +239,7 @@ export const metadataService = {
         return generateMockMetadata(file);
     },
 
-    // 3. Get similar/recommendations for auto-play
+    // 3. Get similar/recommendations (kept for standalone use if needed)
     getRecommendations: async (tmdbId) => {
         if (!API_KEY || !tmdbId) return [];
         try {

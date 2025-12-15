@@ -10,7 +10,7 @@ function createWindow() {
         width: 1200,
         height: 800,
         titleBarStyle: 'hidden', // Allows full custom header styling
-        trafficLightPosition: { x: 20, y: 20 }, // Adjust traffic lights on Mac
+        trafficLightPosition: { x: 15, y: 15 }, // Adjust traffic lights on Mac
         frame: false, // For Windows/Linux custom controls
         backgroundColor: '#000000',
         icon: path.join(__dirname, 'public/logo.png'), // Set App Icon
@@ -90,11 +90,24 @@ ipcMain.handle('scan-directory', async (event, dirPath) => {
 });
 
 // IPC Handlers for FTP
+ipcMain.handle('ftp-test', async (event, config) => {
+    console.log("Testing FTP connection...", config.host);
+    try {
+        await ftpService.connect(config);
+        // We disconnect after test to avoid keeping idle connection? 
+        // Or keep it since we might scan next. Let's keep it simple.
+        return { success: true };
+    } catch (e) {
+        console.error("FTP Test Error:", e.message);
+        throw e;
+    }
+});
+
 ipcMain.handle('ftp-scan', async (event, config) => {
     console.log("Connecting to FTP...", config.host);
     try {
         await ftpService.connect(config);
-        const files = await ftpService.scanDir("/");
+        const files = await ftpService.scanDir(config.remotePath || "/");
         return files;
     } catch (e) {
         console.error("FTP Scan Error:", e);

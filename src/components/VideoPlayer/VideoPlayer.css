@@ -134,12 +134,19 @@
     display: flex;
     align-items: center;
     gap: 1rem;
-    padding: 1rem 1.5rem;
+    padding: 3.5rem 1.5rem 1rem 1.5rem;
     background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
     opacity: 0;
     transform: translateY(-20px);
     transition: opacity 0.3s, transform 0.3s;
     z-index: 20;
+    -webkit-app-region: drag;
+    /* Allow dragging the window from the header */
+}
+
+/* Ensure interactive elements aren't draggable */
+.player-top-bar button {
+    -webkit-app-region: no-drag;
 }
 
 .player-top-bar.visible {
@@ -159,6 +166,8 @@
     color: #fff;
     cursor: pointer;
     transition: background 0.2s, transform 0.2s;
+    margin-right: 0.5rem;
+    /* modest right margin */
 }
 
 .back-button:hover {

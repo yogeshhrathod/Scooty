@@ -61,6 +61,7 @@
     "@heroui/react": "^2.8.5",
     "axios": "^1.13.2",
     "basic-ftp": "^5.0.5",
+    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cors": "^2.8.5",
     "express": "^5.2.1",
@@ -75,6 +76,7 @@
     "react-player": "^3.4.0",
     "react-router-dom": "^7.10.1",
     "tailwind-merge": "^3.4.0",
+    "tailwindcss-animate": "^1.0.7",
     "zustand": "^5.0.9"
   },
   "devDependencies": {

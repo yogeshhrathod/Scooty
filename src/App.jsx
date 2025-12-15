@@ -9,6 +9,7 @@ import { Settings } from './pages/Settings';
 import { Details } from './pages/Details';
 import { TvShows } from './pages/TvShows';
 import { TvShowDetails } from './pages/TvShowDetails';
+import { Genres } from './pages/Genres';
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -18,6 +19,8 @@ function AnimatedRoutes() {
       <Route path="/" element={<Home />} />
       <Route path="/library" element={<Library />} />
       <Route path="/movies" element={<Movies />} />
+      <Route path="/genres" element={<Genres />} />
+      <Route path="/genres/:genreName" element={<Genres />} />
       <Route path="/tv" element={<TvShows />} />
       <Route path="/tv/:showId" element={<TvShowDetails />} />
       <Route path="/settings" element={<Settings />} />
