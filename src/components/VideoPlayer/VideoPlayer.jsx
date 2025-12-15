@@ -32,6 +32,10 @@ export const VideoPlayer = ({
     streamBaseUrl = '',
     originalFilePath = '',
     onSeek = null,
+    onProgress = null,
+    onSettingsChange = null,
+    initialAudioTrack = null,
+    initialSubtitleTrack = null,
 }) => {
     const videoRef = useRef(null);
     const containerRef = useRef(null);
@@ -101,12 +105,22 @@ export const VideoPlayer = ({
             setAudioTracks(mediaInfo.audioTracks || []);
             setSubtitleTracks(mediaInfo.subtitleTracks || []);
 
-            const defaultAudio = mediaInfo.audioTracks?.find(t => t.default) || mediaInfo.audioTracks?.[0];
-            if (defaultAudio) {
-                setSelectedAudioTrack(defaultAudio.index);
+            // Handle Audio Track Selection
+            if (initialAudioTrack !== null && initialAudioTrack !== undefined) {
+                setSelectedAudioTrack(initialAudioTrack);
+            } else {
+                const defaultAudio = mediaInfo.audioTracks?.find(t => t.default) || mediaInfo.audioTracks?.[0];
+                if (defaultAudio) {
+                    setSelectedAudioTrack(defaultAudio.index);
+                }
+            }
+
+            // Handle Subtitle Track Selection
+            if (initialSubtitleTrack !== null && initialSubtitleTrack !== undefined) {
+                setSelectedSubtitleTrack(initialSubtitleTrack);
             }
         }
-    }, [mediaInfo]);
+    }, [mediaInfo, initialAudioTrack, initialSubtitleTrack]);
 
     // Activate/deactivate subtitle tracks when selection changes
     useEffect(() => {
@@ -176,6 +190,7 @@ export const VideoPlayer = ({
         if (trackIndex === selectedAudioTrack) return;
 
         setSelectedAudioTrack(trackIndex);
+        if (onSettingsChange) onSettingsChange({ audioTrack: trackIndex });
         closeAllMenus();
 
         if (isTranscodedStream && streamBaseUrl && originalFilePath) {
@@ -274,8 +289,11 @@ export const VideoPlayer = ({
                     if (subtitleTracks.length > 0) {
                         if (selectedSubtitleTrack !== null) {
                             setSelectedSubtitleTrack(null);
+                            if (onSettingsChange) onSettingsChange({ subtitleTrack: null });
                         } else {
-                            setSelectedSubtitleTrack(subtitleTracks[0]?.index);
+                            const firstTrack = subtitleTracks[0]?.index;
+                            setSelectedSubtitleTrack(firstTrack);
+                            if (onSettingsChange) onSettingsChange({ subtitleTrack: firstTrack });
                         }
                     }
                     break;
@@ -476,6 +494,9 @@ export const VideoPlayer = ({
             const time = videoRef.current.currentTime;
             currentTimeRef.current = time;
             setCurrentTime(time);
+            if (onProgress) {
+                onProgress(isTranscodedStream ? seekOffset + time : time, duration);
+            }
         }
     };
 
@@ -756,6 +777,7 @@ export const VideoPlayer = ({
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 setSelectedSubtitleTrack(null);
+                                                if (onSettingsChange) onSettingsChange({ subtitleTrack: null });
                                                 setShowSubtitleMenu(false);
                                             }}
                                         >
@@ -769,6 +791,7 @@ export const VideoPlayer = ({
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     setSelectedSubtitleTrack(track.index);
+                                                    if (onSettingsChange) onSettingsChange({ subtitleTrack: track.index });
                                                     setShowSubtitleMenu(false);
                                                 }}
                                             >

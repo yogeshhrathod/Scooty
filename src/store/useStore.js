@@ -6,14 +6,25 @@ export const useStore = create(
     persist(
         (set, get) => ({
             library: [],
+            ignoredPaths: [], // List of paths to exclude
             history: {}, // { movieId: progressSeconds }
             favorites: [],
 
             // Async action to add and identify
             addToLibrary: async (rawFiles) => {
-                const currentLib = get().library;
-                // Filter duplicates by path
-                const newFiles = rawFiles.filter(f => !currentLib.some(l => l.path === f.path));
+                const { library, ignoredPaths } = get();
+
+                // Helper to check if a file matches ignore rules
+                const isIgnored = (filePath) => {
+                    return ignoredPaths.some(ignored =>
+                        filePath === ignored || filePath.startsWith(ignored + '/') || filePath.startsWith(ignored + '\\')
+                    );
+                };
+
+                // Filter duplicates and ignored files
+                const newFiles = rawFiles.filter(f =>
+                    !library.some(l => l.path === f.path) && !isIgnored(f.path)
+                );
 
                 if (newFiles.length === 0) return;
 
@@ -52,9 +63,25 @@ export const useStore = create(
 
             clearLibrary: () => set({ library: [], history: {}, favorites: [] }),
 
-            updateHistory: (id, time) => set((state) => ({
-                history: { ...state.history, [id]: time }
-            })),
+            updateHistory: (id, data) => set((state) => {
+                const existing = state.history[id] || {};
+                // Handle legacy number input (just time)
+                if (typeof data === 'number') {
+                    return {
+                        history: {
+                            ...state.history,
+                            [id]: { ...existing, progress: data, lastWatched: Date.now() }
+                        }
+                    };
+                }
+                // Handle object input
+                return {
+                    history: {
+                        ...state.history,
+                        [id]: { ...existing, ...data, lastWatched: Date.now() }
+                    }
+                };
+            }),
             toggleFavorite: (id) => set((state) => {
                 if (state.favorites.includes(id)) {
                     return { favorites: state.favorites.filter(f => f !== id) };
@@ -75,6 +102,28 @@ export const useStore = create(
             removeFolder: (path) => set((state) => ({
                 folders: state.folders.filter(f => f !== path),
                 library: state.library.filter(item => !item.path.startsWith(path))
+            })),
+
+            ignorePath: (path) => set((state) => {
+                const alreadyIgnored = state.ignoredPaths.includes(path);
+                if (alreadyIgnored) return {};
+
+                // Add to ignored list
+                const newIgnored = [...state.ignoredPaths, path];
+
+                // Remove any current library items that match this path
+                const newLibrary = state.library.filter(item =>
+                    item.path !== path && !item.path.startsWith(path + '/') && !item.path.startsWith(path + '\\')
+                );
+
+                return {
+                    ignoredPaths: newIgnored,
+                    library: newLibrary
+                };
+            }),
+
+            unignorePath: (path) => set((state) => ({
+                ignoredPaths: state.ignoredPaths.filter(p => p !== path)
             })),
 
             addFtpSource: (config) => set((state) => ({

@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 // We can upgrade this to use 3D Card later if performance allows, 
 // but for a grid of many items, a simple scale/glow is better.
 
-export const MovieCard = ({ title, posterPath, year, className, onClick }) => {
+export const MovieCard = ({ title, posterPath, year, className, onClick, progress = 0 }) => {
     return (
         <motion.div
             whileHover={{ scale: 1.05 }}
@@ -33,6 +33,16 @@ export const MovieCard = ({ title, posterPath, year, className, onClick }) => {
 
                 {/* Overlay gradient */}
                 <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                {/* Progress Bar */}
+                {progress > 0 && (
+                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20 z-10">
+                        <div
+                            className="h-full bg-primary transition-all duration-300"
+                            style={{ width: `${Math.min(100, progress)}%` }}
+                        />
+                    </div>
+                )}
             </div>
 
             <div className="p-3 lg:p-4">

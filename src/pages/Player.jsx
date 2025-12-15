@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { VideoPlayer } from '../components/VideoPlayer';
+import { useStore } from '../store/useStore';
 
 // Check if we're in Electron environment
 const isElectron = typeof window !== 'undefined' && window.require;
@@ -26,6 +27,12 @@ export const Player = () => {
     const filePath = decodeURIComponent(id || '');
     const title = searchParams.get('title') || filePath.split('/').pop() || 'Video';
     const isMock = id === 'mock' || !id;
+
+    // Store integration - Split selectors to avoid infinite loop
+    const updateHistory = useStore(state => state.updateHistory);
+    const history = useStore(state => state.history);
+
+    const historyItem = history[filePath];
 
     // Initialize player (runs once)
     useEffect(() => {
@@ -66,10 +73,16 @@ export const Player = () => {
                     console.log('[Player] Media info:', info);
 
                     // Find default audio track
-                    const defaultAudio = info.audioTracks?.find(t => t.default) || info.audioTracks?.[0];
-                    if (defaultAudio) {
-                        defaultAudioTrackIndex = defaultAudio.index;
+                    // Priority: Previous History Selection > Default Flag > First Track
+                    if (historyItem?.audioTrack !== undefined) {
+                        defaultAudioTrackIndex = historyItem.audioTrack;
                         setSelectedAudioTrack(defaultAudioTrackIndex);
+                    } else {
+                        const defaultAudio = info.audioTracks?.find(t => t.default) || info.audioTracks?.[0];
+                        if (defaultAudio) {
+                            defaultAudioTrackIndex = defaultAudio.index;
+                            setSelectedAudioTrack(defaultAudioTrackIndex);
+                        }
                     }
                 } catch (infoErr) {
                     console.warn('[Player] Could not get media info:', infoErr);
@@ -88,6 +101,11 @@ export const Player = () => {
                     if (defaultAudioTrackIndex !== null && defaultAudioTrackIndex !== undefined) {
                         streamParams.append('audio', defaultAudioTrackIndex);
                     }
+
+                    // Note: We don't need to append 'start' here because VideoPlayer handles seekOffset.
+                    // However, for efficiency, if we have a resume time, we COULD start transcoding from there.
+                    // But VideoPlayer logic is setup to seek after load.
+                    // Let's let VideoPlayer handle the seek to keep it consistent.
 
                     url = `${baseUrl}/stream?${streamParams.toString()}`;
                 } else {
@@ -117,15 +135,24 @@ export const Player = () => {
         };
 
         initializePlayer();
-    }, [filePath, isMock]); // Only depend on filePath and isMock
-
-    // Audio track changes are now handled internally by VideoPlayer
-    // No need for Player to rebuild URLs
+    }, [filePath, isMock, historyItem]); // Depend on historyItem to get correct start settings
 
     // Handle back navigation
     const handleBack = () => {
         navigate(-1);
     };
+
+    // Store updates
+    const handleProgress = useCallback((time, duration) => {
+        // Save progress every 5 seconds or so? 
+        // For now, let's just save. Zustand is fast. 
+        // Ideally we debounce this. 
+        updateHistory(filePath, { progress: time, duration });
+    }, [filePath, updateHistory]);
+
+    const handleSettingsChange = useCallback((settings) => {
+        updateHistory(filePath, settings);
+    }, [filePath, updateHistory]);
 
     // Loading state
     if (isLoading) {
@@ -166,6 +193,11 @@ export const Player = () => {
                 mediaInfo={mediaInfo}
                 streamBaseUrl={streamBaseUrl}
                 originalFilePath={filePath}
+                startTime={historyItem?.progress || 0}
+                initialAudioTrack={historyItem?.audioTrack}
+                initialSubtitleTrack={historyItem?.subtitleTrack}
+                onProgress={handleProgress}
+                onSettingsChange={handleSettingsChange}
             />
         </div>
     );

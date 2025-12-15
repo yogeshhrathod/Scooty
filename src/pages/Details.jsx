@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
-import { Play, ArrowLeft, Clock, Calendar, Star, User, Film, Clapperboard, Info } from 'lucide-react';
+import { Play, ArrowLeft, Clock, Calendar, Star, User, Film, Clapperboard, Info, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { MovieCard } from '../components/MovieCard';
 
@@ -52,6 +52,7 @@ export const Details = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const library = useStore((state) => state.library);
+    const ignorePath = useStore((state) => state.ignorePath);
 
     // Find item by ID or Path
     const item = useMemo(() => {
@@ -152,6 +153,13 @@ export const Details = () => {
     }
 
     const castDetails = item.castDetails || [];
+
+    const handleExclude = () => {
+        if (window.confirm("Are you sure you want to exclude this video from your library? Is this irrelevant?")) {
+            ignorePath(item.path);
+            navigate(-1);
+        }
+    };
 
     return (
         <div className="relative min-h-screen bg-black -m-8">
@@ -295,8 +303,19 @@ export const Details = () => {
                                 <Play className="w-6 h-6 fill-black" />
                                 Play
                             </button>
-                            <button className="p-4 rounded-full font-medium border border-white/20 hover:bg-white/10 transition-colors text-white">
+                            <button
+                                className="p-4 rounded-full font-medium border border-white/20 hover:bg-white/10 transition-colors text-white group relative"
+                                title="Details"
+                            >
                                 <Info className="w-6 h-6" />
+                            </button>
+
+                            <button
+                                onClick={handleExclude}
+                                className="p-4 rounded-full font-medium border border-red-500/30 text-red-500 hover:bg-red-500/10 transition-colors group"
+                                title="Exclude from Library"
+                            >
+                                <EyeOff className="w-6 h-6" />
                             </button>
                         </motion.div>
 

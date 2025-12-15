@@ -71,6 +71,14 @@ ipcMain.handle('open-directory', async () => {
     return result.filePaths[0];
 });
 
+ipcMain.handle('open-file', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openFile', 'multiSelections']
+    });
+    if (result.canceled) return null;
+    return result.filePaths;
+});
+
 ipcMain.handle('scan-directory', async (event, dirPath) => {
     try {
         const files = await scanDir(dirPath);

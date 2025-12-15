@@ -9,6 +9,9 @@ export const Home = () => {
     const library = useStore((state) => state.library) || [];
     const navigate = useNavigate();
 
+    // Get history from store
+    const history = useStore((state) => state.history) || {};
+
     // Group items: Movies are individual, TV Shows are grouped by tmdbId or showTitle
     const displayItems = React.useMemo(() => {
         if (!library || library.length === 0) {
@@ -36,7 +39,39 @@ export const Home = () => {
         return Array.from(map.values());
     }, [library]);
 
-    // Get only movies for "Continue Watching" and "Recommended"
+    // Derive Continue Watching items
+    const continueWatchingItems = React.useMemo(() => {
+        if (!library || library.length === 0) return [];
+
+        return Object.entries(history)
+            .map(([id, data]) => {
+                // Find the item in the library
+                // Note: id in history is the filePath for local files
+                const item = library.find(l => l.path === id || l.id === id);
+                if (!item) return null;
+
+                // Normalize history data
+                const progress = typeof data === 'number' ? data : data.progress;
+                const duration = typeof data === 'number' ? 0 : data.duration;
+                const lastWatched = typeof data === 'number' ? 0 : data.lastWatched;
+
+                // Filter out finished items (e.g., > 90% watched)
+                // And items with very little progress (e.g. < 10s)
+                if (duration > 0) {
+                    const pct = progress / duration;
+                    if (pct > 0.95) return null; // Considered finished
+                    if (pct < 0.01 && progress < 30) return null; // Just opened, not really watching
+                } else {
+                    if (progress < 10) return null;
+                }
+
+                return { ...item, lastWatched, progress, duration };
+            })
+            .filter(Boolean)
+            .sort((a, b) => (b.lastWatched || 0) - (a.lastWatched || 0));
+    }, [library, history]);
+
+    // Get only movies for "Recommended"
     const moviesOnly = displayItems.filter(item => item.type !== 'tv');
     const tvShowsOnly = displayItems.filter(item => item.type === 'tv');
 
@@ -58,8 +93,8 @@ export const Home = () => {
             />
 
             <div className="relative z-10 w-full px-2 sm:px-4">
-                {/* Continue Watching Section - Shows both movies and TV shows */}
-                {displayItems.length > 0 && (
+                {/* Continue Watching Section */}
+                {continueWatchingItems.length > 0 && (
                     <div className="mb-10 md:mb-12">
                         <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-b from-neutral-600 to-neutral-900 dark:from-neutral-50 dark:to-neutral-400 bg-opacity-50 pb-3 md:pb-4 mt-6 md:mt-10">
                             Continue Watching
@@ -69,13 +104,14 @@ export const Home = () => {
                         </p>
 
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 3xl:grid-cols-10 4k:grid-cols-12 gap-3 sm:gap-4 md:gap-6 mt-6 md:mt-8">
-                            {displayItems.slice(0, 6).map((item) => (
+                            {continueWatchingItems.slice(0, 10).map((item) => (
                                 <MovieCard
-                                    key={item.groupKey || item.id || item.tmdbId || item.path}
-                                    title={item.title}
+                                    key={item.id || item.tmdbId || item.path}
+                                    title={item.title || item.name} // Handle generic file names
                                     year={item.year || item.release_date?.split('-')[0]}
-                                    posterPath={item.poster_path}
+                                    posterPath={item.poster_path || item.backdrop_path}
                                     onClick={() => handleItemClick(item)}
+                                    progress={item.duration ? (item.progress / item.duration) * 100 : 0}
                                 />
                             ))}
                         </div>

@@ -30,7 +30,9 @@ import {
     AlertCircle,
 
     Loader2,
-    Plus
+    Plus,
+    EyeOff,
+    FileMinus
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useStore } from '../store/useStore';
@@ -44,10 +46,13 @@ export const Settings = () => {
     const history = useStore((state) => state.history) || {};
     const folders = useStore((state) => state.folders) || [];
     const ftpSources = useStore((state) => state.ftpSources) || [];
+    const ignoredPaths = useStore((state) => state.ignoredPaths) || [];
     const removeFolder = useStore((state) => state.removeFolder);
     const removeFtpSource = useStore((state) => state.removeFtpSource);
     const addToLibrary = useStore((state) => state.addToLibrary);
     const addFolder = useStore((state) => state.addFolder);
+    const ignorePath = useStore((state) => state.ignorePath);
+    const unignorePath = useStore((state) => state.unignorePath);
 
     // Local UI State
     const [isSyncing, setIsSyncing] = useState(false);
@@ -136,6 +141,20 @@ export const Settings = () => {
         }
     };
 
+    const handleAddException = async (type = 'directory') => {
+        if (!isElectron) return;
+        const { ipcRenderer } = window.require('electron');
+        try {
+            const path = await ipcRenderer.invoke(type === 'file' ? 'open-file' : 'open-directory');
+            if (path) {
+                if (Array.isArray(path)) path.forEach(p => ignorePath(p));
+                else ignorePath(path);
+            }
+        } catch (err) {
+            console.error('[Settings] Error adding exception:', err);
+        }
+    };
+
     const tabs = [
         {
             title: "Library",
@@ -186,6 +205,41 @@ export const Settings = () => {
                                     >
                                         <Plus className="w-5 h-5" />
                                         {isSyncing ? 'Scanning...' : 'Add Local Folder'}
+                                    </button>
+                                </div>
+                            </SettingsSection>
+
+                            <SettingsSection title="Excluded Items">
+                                {ignoredPaths.length === 0 && (
+                                    <div className="p-6 text-center text-neutral-500 italic text-sm">
+                                        No exclusions defined.
+                                    </div>
+                                )}
+                                {ignoredPaths.map((path, i) => (
+                                    <div key={i} className="flex items-center justify-between p-4 border-b last:border-0 border-white/5 bg-transparent hover:bg-white/5 transition">
+                                        <div className="flex items-center gap-3 overflow-hidden">
+                                            <EyeOff className="w-4 h-4 text-neutral-400 shrink-0" />
+                                            <span className="text-white text-sm truncate dir-rtl text-left" title={path}>
+                                                ...{path.slice(-40)}
+                                            </span>
+                                        </div>
+                                        <button onClick={() => unignorePath(path)} className="text-xs text-primary hover:text-primary/80 font-medium px-2 py-1 bg-primary/10 rounded-md">
+                                            Restore
+                                        </button>
+                                    </div>
+                                ))}
+                                <div className="p-4 border-t border-white/5 grid grid-cols-2 gap-3">
+                                    <button
+                                        onClick={() => handleAddException('directory')}
+                                        className="py-2 px-3 bg-neutral-100 dark:bg-white/5 text-neutral-600 dark:text-neutral-300 rounded-lg text-xs font-medium hover:bg-white/10 transition flex items-center justify-center gap-2"
+                                    >
+                                        <EyeOff className="w-3 h-3" /> Exclude Folder
+                                    </button>
+                                    <button
+                                        onClick={() => handleAddException('file')}
+                                        className="py-2 px-3 bg-neutral-100 dark:bg-white/5 text-neutral-600 dark:text-neutral-300 rounded-lg text-xs font-medium hover:bg-white/10 transition flex items-center justify-center gap-2"
+                                    >
+                                        <FileMinus className="w-3 h-3" /> Exclude File
                                     </button>
                                 </div>
                             </SettingsSection>
@@ -344,7 +398,7 @@ export const Settings = () => {
     return (
         <div className="min-h-screen pb-20 relative flex flex-col w-full items-start justify-start px-2 sm:px-4">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-900 dark:text-white mb-6 md:mb-8 tracking-tight">Settings</h2>
-            <Tabs tabs={tabs} containerClassName="mb-10 w-full" />
+            <Tabs tabs={tabs} containerClassName="mb-10 w-full" contentClassName="h-[40rem] md:h-[50rem]" />
         </div>
     );
 };
