@@ -42,48 +42,91 @@ class FtpService {
         }
     }
 
-    async scanDir(remotePath = "/") {
-        try {
-            await this.ensureConnection()
-        } catch (e) {
-            console.error("Skipping scan, no connection.");
+    async scanDir(remotePath = "/", depth = 0, maxDepth = 15) {
+        // Prevent infinite recursion
+        if (depth > maxDepth) {
+            console.warn(`[FTP] Max depth ${maxDepth} reached at ${remotePath}, skipping.`);
             return [];
         }
 
-        let results = []
         try {
-            // Add timeout for listing
-            const listPromise = this.client.list(remotePath);
-            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("FTP List Timeout")), 10000));
+            await this.ensureConnection()
+        } catch (e) {
+            console.error("[FTP] Skipping scan, no connection.");
+            return [];
+        }
 
+        let results = [];
+        const indent = '  '.repeat(depth);
+
+        try {
+            console.log(`${indent}[FTP] Scanning: ${remotePath}`);
+
+            // Navigate into the directory first - this avoids issues with spaces/brackets in arguments
+            try {
+                await this.client.cd(remotePath);
+            } catch (err) {
+                console.warn(`${indent}[FTP] Failed to CD into ${remotePath}: ${err.message}`);
+                return [];
+            }
+
+            // List current directory
+            const listPromise = this.client.list(); // List current dir
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("FTP List Timeout")), 15000)
+            );
             const list = await Promise.race([listPromise, timeoutPromise]);
 
+            // Separate directories and files
+            const directories = [];
+            const files = [];
+
             for (const item of list) {
-                const itemPath = path.posix.join(remotePath, item.name)
+                if (item.name.startsWith('.')) continue;
 
                 if (item.isDirectory) {
-                    try {
-                        const subResults = await this.scanDir(itemPath)
-                        results = results.concat(subResults)
-                    } catch (err) {
-                        console.warn(`Failed to scan subdir ${itemPath}:`, err.message)
-                    }
+                    directories.push(item);
                 } else {
-                    if (/\.(mkv|mp4|avi|mov|wmv)$/i.test(item.name)) {
-                        results.push({
-                            name: item.name,
-                            path: itemPath,
-                            size: item.size,
-                            type: 'video',
-                            source: 'ftp'
-                        })
-                    }
+                    files.push(item);
                 }
             }
+
+            console.log(`${indent}[FTP] Found ${directories.length} dirs, ${files.length} files in ${remotePath}`);
+
+            // Process files first
+            for (const item of files) {
+                const itemPath = path.posix.join(remotePath, item.name);
+                if (/\.(mkv|mp4|avi|mov|wmv|m4v|webm|flv|m2ts|ts)$/i.test(item.name)) {
+                    console.log(`${indent}  [FTP Found] ${item.name}`);
+                    results.push({
+                        name: item.name,
+                        path: itemPath,
+                        size: item.size,
+                        type: 'video',
+                        source: 'ftp'
+                    });
+                }
+            }
+
+            // Process directories SEQUENTIALLY
+            // Note: failing to scan a subdir shouldn't stop the rest
+            for (const item of directories) {
+                const itemPath = path.posix.join(remotePath, item.name);
+                // We must recursively scan. Since scanDir will 'cd' into the absolute path of the child,
+                // we don't need to manually 'cd' back and forth here. scanDir handles the navigation.
+                const subResults = await this.scanDir(itemPath, depth + 1, maxDepth);
+                results = results.concat(subResults);
+            }
+
         } catch (err) {
-            console.error("Error scanning dir:", remotePath, err.message)
+            console.error(`[FTP] Error scanning dir ${remotePath}: ${err.message}`);
         }
-        return results
+
+        if (depth === 0) {
+            console.log(`[FTP] Scan complete: Found ${results.length} media files`);
+        }
+
+        return results;
     }
 
     /**

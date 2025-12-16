@@ -11,6 +11,7 @@ export const useStore = create(
             favorites: [],
 
             // Async action to add and identify
+            // Async action to add and identify
             addToLibrary: async (rawFiles) => {
                 const { library, ignoredPaths } = get();
 
@@ -28,11 +29,22 @@ export const useStore = create(
 
                 if (newFiles.length === 0) return;
 
-                // Identify metadata for each
-                // Show some loading state in UI if needed, but for now we do it in bg or blocking
-                const enrichedFiles = await Promise.all(
-                    newFiles.map(file => metadataService.identify(file))
-                );
+                // Identify metadata for each with concurrency limit
+                const CHUNK_SIZE = 3;
+                const enrichedFiles = [];
+
+                for (let i = 0; i < newFiles.length; i += CHUNK_SIZE) {
+                    const chunk = newFiles.slice(i, i + CHUNK_SIZE);
+                    const results = await Promise.all(
+                        chunk.map(file => metadataService.identify(file))
+                    );
+                    enrichedFiles.push(...results);
+
+                    // Small delay between chunks to be nice to API
+                    if (i + CHUNK_SIZE < newFiles.length) {
+                        await new Promise(r => setTimeout(r, 500));
+                    }
+                }
 
                 set((state) => ({
                     library: [...state.library, ...enrichedFiles]
@@ -43,20 +55,24 @@ export const useStore = create(
                 const currentLib = get().library;
                 if (currentLib.length === 0) return;
 
-                // Re-run identify on all files
-                // We map back to basic file object structure if needed, but identify implementation handles existing meta fields gracefully (it re-parses name)
-                const refreshedLibrary = await Promise.all(
-                    currentLib.map(async (item) => {
-                        // If it was a mock or failed before, re-try
-                        // We simulate a fresh file object from the existing path/name
-                        return await metadataService.identify({
-                            name: item.name,
-                            path: item.path,
-                            size: item.size,
-                            type: item.type
-                        });
-                    })
-                );
+                // Re-run identify on all files with concurrency
+                const CHUNK_SIZE = 3;
+                const refreshedLibrary = [];
+
+                for (let i = 0; i < currentLib.length; i += CHUNK_SIZE) {
+                    const chunk = currentLib.slice(i, i + CHUNK_SIZE);
+                    const results = await Promise.all(
+                        chunk.map(async (item) => {
+                            return await metadataService.identify({
+                                ...item,
+                                // We keep existing ID/path but re-fetch meta based on name/path
+                                identified: false // Force re-ID
+                            });
+                        })
+                    );
+                    refreshedLibrary.push(...results);
+                    await new Promise(r => setTimeout(r, 500));
+                }
 
                 set({ library: refreshedLibrary });
             },
@@ -136,32 +152,47 @@ export const useStore = create(
                 library: state.library.filter(item => item.sourceId !== id)
             })),
 
-            syncFtp: async (config) => {
+            // Sync State
+            isSyncing: false,
+            syncStatus: '',
+
+            setSyncState: (isSyncing, status) => set({ isSyncing, syncStatus: status }),
+
+            async syncFtp(config) {
                 const { ftpService } = await import('../services/ftp');
+                set({ isSyncing: true, syncStatus: `Scanning FTP: ${config.host}...` });
                 try {
                     const files = await ftpService.scan(config);
+
+                    if (files.length === 0) {
+                        console.warn('No files found on FTP');
+                        return true;
+                    }
+
+                    set({ syncStatus: `Processing ${files.length} items...` });
+
                     // Add sourceId to files for easy removal later
-                    const sourceId = config.id || 'temp-ftp'; // In real usage, ensure config has ID when passed here
+                    const sourceId = config.id || 'temp-ftp';
                     const filesWithSource = files.map(f => ({ ...f, sourceId, source: 'ftp' }));
+
                     await get().addToLibrary(filesWithSource);
                     return true;
                 } catch (e) {
-                    console.error(e);
+                    console.error('FTP Sync Error:', e);
                     return false;
+                } finally {
+                    set({ isSyncing: false, syncStatus: '' });
                 }
+            },
+
+            resyncFtpSource: async (id) => {
+                const source = get().ftpSources.find(s => s.id === id);
+                if (!source) return false;
+                return await get().syncFtp(source);
             },
 
             // Settings / Data Management
             clearCache: () => set((state) => ({
-                // Keep library but reset metadata/history? 
-                // Or maybe the user means clearing temporary files. 
-                // For now, let's interpret "Clear Cache" as clearing images/metadata but keeping file references, 
-                // BUT since we don't store metadata separately from library items, 
-                // maybe "Clear Cache" is just a no-op or console log in this basic store, 
-                // or we could clear 'history' (resume points).
-                // Let's assume it clears identified metadata and forces re-identification on next sync.
-                // However, re-identification is expensive.
-                // Let's make it clear history and favorites for now, or maybe just clear history.
                 history: {},
             })),
 

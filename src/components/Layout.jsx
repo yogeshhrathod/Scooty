@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Home, Film, Tv, Folder, Settings, Search, Tags, ChevronRight } from 'lucide-react';
+import { Home, Film, Tv, Folder, Settings, Search, Tags, ChevronRight, Loader2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Sidebar, SidebarBody, SidebarLink } from './ui/sidebar';
 import { Input } from './ui/input';
@@ -195,8 +195,19 @@ const TitleBar = () => {
                 </div>
             </div>
 
-            {/* Right Section: Window Controls */}
+            {/* Right Section: Sync Status & Window Controls */}
             <div className="flex items-center justify-end w-1/4 gap-4">
+                {/* Global Sync Indicator */}
+                {/* We use isSyncing from store to show status */}
+                {useStore(state => state.isSyncing) && (
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 border border-primary/20 rounded-full animate-in fade-in slide-in-from-right-4 duration-300">
+                        <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />
+                        <span className="text-xs font-medium text-primary/90 max-w-[150px] truncate">
+                            {useStore(state => state.syncStatus) || 'Syncing...'}
+                        </span>
+                    </div>
+                )}
+
                 {!isMac && (
                     <div className="flex items-center gap-3 pl-4 border-l border-white/10 ml-4" style={{ WebkitAppRegion: 'no-drag' }}>
                         <button onClick={handleMinimize} className="p-2 hover:bg-white/10 rounded-full transition-colors group">
@@ -220,6 +231,25 @@ const TitleBar = () => {
 
 export const Layout = ({ children }) => {
     const [open, setOpen] = useState(false);
+    const ftpSources = useStore((state) => state.ftpSources) || [];
+
+    // Restore FTP config on app startup so playback works without re-syncing
+    useEffect(() => {
+        const restoreFtpConfig = async () => {
+            if (ftpSources.length > 0 && window.require) {
+                const { ftpService } = await import('../services/ftp');
+                // Use the first FTP source as the active config
+                const firstSource = ftpSources[0];
+                console.log('[Layout] Restoring FTP config for:', firstSource.host);
+                try {
+                    await ftpService.restoreConfig(firstSource);
+                } catch (e) {
+                    console.warn('[Layout] Failed to restore FTP config:', e);
+                }
+            }
+        };
+        restoreFtpConfig();
+    }, []); // Only on mount
 
     const links = [
         { label: 'Home', href: '/', icon: <Home className="h-5 w-5 flex-shrink-0" /> },

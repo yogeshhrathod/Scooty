@@ -16,7 +16,14 @@ export const TvShows = () => {
         library
             .filter(item => item.type === 'tv')
             .forEach(item => {
-                const key = item.tmdbId ? `tv-${item.tmdbId}` : `tv-${item.showTitle || item.title}`;
+                // Use tmdbId if available, otherwise fall back to parsedShowTitle for consistent grouping
+                // parsedShowTitle is normalized (lowercase, no special chars) for better matching
+                const key = item.tmdbId
+                    ? `tv-${item.tmdbId}`
+                    : item.parsedShowTitle
+                        ? `tv-parsed-${item.parsedShowTitle}`
+                        : `tv-${(item.showTitle || item.title).toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+
                 if (!map.has(key)) {
                     map.set(key, {
                         ...item,

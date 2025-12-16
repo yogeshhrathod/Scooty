@@ -22,15 +22,25 @@ export const TvShowDetails = () => {
     // Find all episodes for this show
     const { show, allEpisodes, seasons, lastWatchedEpisode } = useMemo(() => {
         const decodedId = decodeURIComponent(showId);
+        const normalizedId = decodedId.toLowerCase().replace(/[^a-z0-9]/g, '');
 
         // Find all episodes that belong to this show
-        const episodes = library.filter(item =>
-            item.type === 'tv' && (
-                String(item.tmdbId) === decodedId ||
-                item.showTitle === decodedId ||
-                item.title === decodedId
-            )
-        ).sort((a, b) => {
+        // Match by tmdbId, showTitle, title, or parsedShowTitle (normalized)
+        const episodes = library.filter(item => {
+            if (item.type !== 'tv') return false;
+
+            // Direct matches
+            if (String(item.tmdbId) === decodedId) return true;
+            if (item.showTitle === decodedId) return true;
+            if (item.title === decodedId) return true;
+
+            // Normalized matches for better grouping
+            if (item.parsedShowTitle && item.parsedShowTitle === normalizedId) return true;
+            if (item.showTitle && item.showTitle.toLowerCase().replace(/[^a-z0-9]/g, '') === normalizedId) return true;
+            if (item.title && item.title.toLowerCase().replace(/[^a-z0-9]/g, '') === normalizedId) return true;
+
+            return false;
+        }).sort((a, b) => {
             if (a.season !== b.season) return (a.season || 0) - (b.season || 0);
             return (a.episode || 0) - (b.episode || 0);
         });

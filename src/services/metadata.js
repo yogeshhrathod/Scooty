@@ -6,9 +6,9 @@ const BASE_URL = 'https://api.themoviedb.org/3';
 
 export const metadataService = {
     // 1. Clean filename to get a search query
-    parseFilename: (filename) => {
+    parseFilename: (filename, filePath = '') => {
         console.log(`[Metadata] Parsing filename: ${filename}`);
-        if (!filename) return { title: '', year: null, isTV: false };
+        if (!filename) return { title: '', year: null, isTV: false, parsedShowTitle: '' };
 
         // Remove extension
         let name = filename.replace(/\.[^/.]+$/, "");
@@ -18,16 +18,75 @@ export const metadataService = {
 
         // Detect TV Show Pattern (S01E01, 1x01, etc)
         const tvRegex = /s(\d{1,2})e(\d{1,2})|(\d{1,2})x(\d{1,2})/i;
-        const tvMatch = name.match(tvRegex);
-        const isTV = !!tvMatch;
+        let tvMatch = name.match(tvRegex);
+        let isTV = !!tvMatch;
 
         let season = null;
         let episode = null;
+        let showTitleFromFolder = '';
 
         if (tvMatch) {
             season = parseInt(tvMatch[1] || tvMatch[3]);
             episode = parseInt(tvMatch[2] || tvMatch[4]);
-            console.log(`[Metadata] Detected TV Show: S${season}E${episode}`);
+            console.log(`[Metadata] Detected TV Show from filename: S${season}E${episode}`);
+        }
+
+        // Try to detect TV show from folder structure if not detected from filename
+        // Common patterns: /Show Name/Season 1/episode.mkv or /Show Name/S01/episode.mkv
+        if (filePath) {
+            const pathParts = filePath.replace(/\\/g, '/').split('/');
+
+            // Check for "Season X" or "SXX" folder pattern
+            for (let i = pathParts.length - 2; i >= 0; i--) {
+                const folder = pathParts[i];
+
+                // Match "Season 1", "Season 01", "S1", "S01" patterns
+                const seasonFolderMatch = folder.match(/^(?:season\s*)?(\d{1,2})$/i) ||
+                    folder.match(/^s(\d{1,2})$/i) ||
+                    folder.match(/^season\s*(\d{1,2})$/i);
+
+                if (seasonFolderMatch) {
+                    const folderSeason = parseInt(seasonFolderMatch[1]);
+
+                    // If we haven't detected season from filename, use folder
+                    if (!season) {
+                        season = folderSeason;
+                        isTV = true;
+                    }
+
+                    // The folder before this should be the show name
+                    if (i > 0) {
+                        showTitleFromFolder = pathParts[i - 1]
+                            .replace(/[._\-]/g, ' ')
+                            .replace(/\s+/g, ' ')
+                            .trim();
+                        console.log(`[Metadata] Detected show title from folder: "${showTitleFromFolder}"`);
+                    }
+                    break;
+                }
+            }
+
+            // If still not detected but we found a Season folder, check if episode number is in filename
+            // Only do this if we already detected a season folder (showTitleFromFolder is set)
+            if (!isTV && !episode && showTitleFromFolder) {
+                // Match patterns like "Episode 1", "Ep 01", "E01", "Part 1" at the end of filename
+                // Be more conservative - only match explicit episode markers, not just trailing numbers
+                const altEpMatch = name.match(/(?:ep(?:isode)?|e|part)\s*(\d{1,3})$/i);
+                if (altEpMatch && parseInt(altEpMatch[1]) <= 99) {
+                    episode = parseInt(altEpMatch[1]);
+                    isTV = true;
+                    console.log(`[Metadata] Detected episode number from alt pattern: E${episode}`);
+                } else {
+                    // If we have a season folder but no episode detected, try to extract episode from simple number
+                    // Only if filename starts with a number (like "01 - Episode Name.mkv")
+                    const simpleEpMatch = name.match(/^(\d{1,2})(?:\s*[\-\.]\s*|\s+)/);
+                    if (simpleEpMatch && parseInt(simpleEpMatch[1]) <= 99) {
+                        episode = parseInt(simpleEpMatch[1]);
+                        isTV = true;
+                        console.log(`[Metadata] Detected episode from leading number: E${episode}`);
+                    }
+                }
+            }
         }
 
         // Extract Year (matches 19xx or 20xx in brackets, logic, or standalone)
@@ -54,11 +113,22 @@ export const metadataService = {
         // 4. Remove brackets/parentheses and their content
         name = name.replace(/[\[\(].*?[\]\)]/g, '');
 
-        // 5. Trim whitespace
+        // 5. Remove episode numbers at the end for TV shows (e.g., "Show Name 01" -> "Show Name")
+        if (isTV && episode) {
+            name = name.replace(/\s+\d{1,2}$/, '');
+        }
+
+        // 6. Trim whitespace
         name = name.replace(/\s+/g, ' ').trim();
 
-        console.log(`[Metadata] Cleaned Name: "${name}", Year: ${year}, isTV: ${isTV}`);
-        return { title: name, year, isTV, season, episode };
+        // Use folder title if filename title is empty or very short
+        const finalTitle = (name.length < 2 && showTitleFromFolder) ? showTitleFromFolder : name;
+
+        // Create a normalized show title for grouping (lowercase, no special chars)
+        const parsedShowTitle = (showTitleFromFolder || finalTitle).toLowerCase().replace(/[^a-z0-9]/g, '');
+
+        console.log(`[Metadata] Cleaned Name: "${finalTitle}", Year: ${year}, isTV: ${isTV}, parsedShowTitle: "${parsedShowTitle}"`);
+        return { title: finalTitle, year, isTV, season, episode, parsedShowTitle };
     },
 
     // 2. Identify Metadata from TMDB
@@ -70,7 +140,7 @@ export const metadataService = {
         }
 
         try {
-            const { title, year, isTV, season, episode } = metadataService.parseFilename(file.name);
+            const { title, year, isTV, season, episode, parsedShowTitle } = metadataService.parseFilename(file.name, file.path);
 
             if (!title) return generateMockMetadata(file);
 
@@ -151,6 +221,7 @@ export const metadataService = {
                         type: 'tv',
                         season,
                         episode,
+                        parsedShowTitle, // Used for fallback grouping if tmdbId is missing
                         identified: true
                     };
                 }
@@ -252,7 +323,7 @@ export const metadataService = {
 };
 
 function generateMockMetadata(file) {
-    const { title, year } = metadataService.parseFilename(file.name);
+    const { title, year, isTV, season, episode, parsedShowTitle } = metadataService.parseFilename(file.name, file.path);
 
     // Create a deterministic color/gradient based on filename for the placeholder
     const stringHash = file.name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -274,7 +345,7 @@ function generateMockMetadata(file) {
 
     const placeholder = `data:image/svg+xml;base64,${btoa(svgString)}`;
 
-    return {
+    const result = {
         ...file,
         title: title || file.name,
         overview: "Metadata could not be fetched. Check your internet connection or API Key.",
@@ -284,4 +355,15 @@ function generateMockMetadata(file) {
         identified: false,
         year: year
     };
+
+    // Add TV-specific data for proper grouping
+    if (isTV) {
+        result.type = 'tv';
+        result.showTitle = title;
+        result.season = season || 1;
+        result.episode = episode || 1;
+        result.parsedShowTitle = parsedShowTitle;
+    }
+
+    return result;
 }

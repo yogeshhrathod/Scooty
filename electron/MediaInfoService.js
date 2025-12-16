@@ -7,6 +7,8 @@ const ffmpeg = require('fluent-ffmpeg');
 const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
 const ffprobeInstaller = require('@ffprobe-installer/ffprobe');
 const path = require('path');
+const fs = require('fs');
+const ftpService = require('./FtpService');
 
 // Get paths (handle asar packaging for Electron)
 const ffmpegPath = ffmpegInstaller.path.replace('app.asar', 'app.asar.unpacked');
@@ -27,7 +29,27 @@ class MediaInfoService {
      */
     async getMediaInfo(filePath) {
         return new Promise((resolve, reject) => {
-            ffmpeg.ffprobe(filePath, (err, metadata) => {
+            let probePath = filePath;
+
+            // Check if it's a local file
+            if (!fs.existsSync(filePath)) {
+                // If not local, check if we have FTP credentials
+                if (ftpService.config) {
+                    const { user, password, host, port } = ftpService.config;
+                    const encodedUser = encodeURIComponent(user);
+                    const encodedPass = encodeURIComponent(password);
+
+                    // Ensure path starts with /
+                    const cleanPath = filePath.startsWith('/') ? filePath : '/' + filePath;
+                    // Split by / and encode each segment to handle spaces/special chars
+                    const encodedPath = cleanPath.split('/').map(segment => encodeURIComponent(segment)).join('/');
+
+                    probePath = `ftp://${encodedUser}:${encodedPass}@${host}:${port || 21}${encodedPath}`;
+                    console.log('[MediaInfo] Probing remote file via FTP');
+                }
+            }
+
+            ffmpeg.ffprobe(probePath, (err, metadata) => {
                 if (err) {
                     console.error('[MediaInfo] FFprobe error:', err.message);
                     reject(err);
@@ -129,14 +151,33 @@ class MediaInfoService {
 
         const outputPath = path.join(tempDir, `sub_${Date.now()}_${trackIndex}.vtt`);
 
+        // Determine input path - handle FTP files
+        let inputPath = filePath;
+        if (!fs.existsSync(filePath)) {
+            // If not local, check if we have FTP credentials
+            if (ftpService.config) {
+                const { user, password, host, port } = ftpService.config;
+                const encodedUser = encodeURIComponent(user);
+                const encodedPass = encodeURIComponent(password);
+
+                // Ensure path starts with /
+                const cleanPath = filePath.startsWith('/') ? filePath : '/' + filePath;
+                // Split by / and encode each segment to handle spaces/special chars
+                const encodedPath = cleanPath.split('/').map(segment => encodeURIComponent(segment)).join('/');
+
+                inputPath = `ftp://${encodedUser}:${encodedPass}@${host}:${port || 21}${encodedPath}`;
+                console.log('[MediaInfo] Extracting subtitle from remote FTP file');
+            }
+        }
+
         return new Promise((resolve, reject) => {
-            ffmpeg(filePath)
+            ffmpeg(inputPath)
                 .outputOptions([
                     `-map 0:${trackIndex}`,
                 ])
                 .output(outputPath)
                 .on('start', (cmd) => {
-                    console.log('[MediaInfo] Extracting subtitle with command:', cmd);
+                    console.log('[MediaInfo] Extracting subtitle with command:', cmd.replace(/:[^:@]+@/, ':***@')); // Mask password
                 })
                 .on('error', (err) => {
                     console.error('[MediaInfo] Subtitle extraction error:', err.message);

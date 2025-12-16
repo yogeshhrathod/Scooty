@@ -44,6 +44,7 @@ export const Settings = () => {
     const clearCache = useStore((state) => state.clearCache);
     const clearLibrary = useStore((state) => state.clearLibrary);
     const resyncLibrary = useStore((state) => state.resyncLibrary);
+    const resyncFtpSource = useStore((state) => state.resyncFtpSource);
     const history = useStore((state) => state.history) || {};
     const folders = useStore((state) => state.folders) || [];
     const ftpSources = useStore((state) => state.ftpSources) || [];
@@ -57,6 +58,7 @@ export const Settings = () => {
 
     // Local UI State
     const [isSyncing, setIsSyncing] = useState(false);
+    const [syncingSourceId, setSyncingSourceId] = useState(null);
 
     const [theme, setTheme] = useState('dark');
     const [confirmAction, setConfirmAction] = useState(null); // { type: 'clear_lib', title: 'Start Fresh?' }
@@ -68,6 +70,12 @@ export const Settings = () => {
 
     // Check if running in Electron
     const isElectron = typeof window !== 'undefined' && window.require;
+
+    const handleFtpResync = async (id) => {
+        setSyncingSourceId(id);
+        await resyncFtpSource(id);
+        setSyncingSourceId(null);
+    };
 
     const handleResync = async () => {
         setIsSyncing(true);
@@ -196,7 +204,15 @@ export const Settings = () => {
                                     <SourceRow key={i} icon={FolderOpen} label={f} type="Local Folder" onDelete={() => removeFolder(f)} />
                                 ))}
                                 {ftpSources.map((f) => (
-                                    <SourceRow key={f.id} icon={Globe} label={`${f.user}@${f.host}`} type="FTP Server" onDelete={() => removeFtpSource(f.id)} />
+                                    <SourceRow
+                                        key={f.id}
+                                        icon={Globe}
+                                        label={`${f.user}@${f.host}`}
+                                        type="FTP Server"
+                                        onDelete={() => removeFtpSource(f.id)}
+                                        onResync={() => handleFtpResync(f.id)}
+                                        isSyncing={syncingSourceId === f.id}
+                                    />
                                 ))}
                                 <div className="p-4 border-t border-white/5">
                                     <button
@@ -479,7 +495,7 @@ const ToggleRow = ({ label, description, isOn, onToggle }) => (
     </div>
 )
 
-const SourceRow = ({ icon: Icon, label, type, onDelete }) => (
+const SourceRow = ({ icon: Icon, label, type, onDelete, onResync, isSyncing }) => (
     <div className="flex items-center justify-between p-4 border-b last:border-0 border-white/5">
         <div className="flex items-center gap-4">
             <div className="p-2 bg-white/5 rounded-lg">
@@ -490,9 +506,21 @@ const SourceRow = ({ icon: Icon, label, type, onDelete }) => (
                 <div className="text-xs text-neutral-500">{type}</div>
             </div>
         </div>
-        <button onClick={onDelete} className="p-2 hover:bg-red-500/20 text-neutral-500 hover:text-red-500 rounded-lg transition-colors">
-            <Trash2 className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2">
+            {onResync && (
+                <button
+                    onClick={onResync}
+                    disabled={isSyncing}
+                    className="p-2 hover:bg-primary/20 text-neutral-500 hover:text-primary rounded-lg transition-colors disabled:opacity-50 disabled:animate-spin"
+                    title="Resync Source"
+                >
+                    <RefreshCw className="w-4 h-4" />
+                </button>
+            )}
+            <button onClick={onDelete} className="p-2 hover:bg-red-500/20 text-neutral-500 hover:text-red-500 rounded-lg transition-colors" title="Remove Source">
+                <Trash2 className="w-4 h-4" />
+            </button>
+        </div>
     </div>
 );
 

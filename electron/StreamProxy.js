@@ -144,25 +144,24 @@ class StreamProxy {
                 if (isLocalFile) {
                     command = ffmpeg(filePath);
                 } else {
-                    // FTP -> FFmpeg piping
+                    // Use native FFmpeg FTP support for better sync/seeking
                     try {
-                        const { PassThrough } = require('stream');
-                        const pt = new PassThrough();
+                        if (ftpService.config) {
+                            const { user, password, host, port } = ftpService.config;
+                            const encodedUser = encodeURIComponent(user);
+                            const encodedPass = encodeURIComponent(password);
 
-                        const streamClient = await ftpService.createStreamClient();
+                            // Ensure path starts with / and encode segments
+                            const cleanPath = filePath.startsWith('/') ? filePath : '/' + filePath;
+                            const encodedPath = cleanPath.split('/').map(segment => encodeURIComponent(segment)).join('/');
 
-                        streamClient.download(pt, filePath, 0).catch(err => {
-                            console.error("[StreamProxy] FTP DL Error for transcoding:", err);
-                            if (!res.headersSent) {
-                                res.status(500).send("FTP Download Error for Transcoding");
-                            } else {
-                                res.end();
-                            }
-                        }).finally(() => {
-                            streamClient.close();
-                        });
+                            const ftpUrl = `ftp://${encodedUser}:${encodedPass}@${host}:${port || 21}${encodedPath}`;
+                            console.log('[StreamProxy] Using FFmpeg native FTP input:', ftpUrl.replace(/:[^:@]+@/, ':***@')); // Log masked URL
 
-                        command = ffmpeg(pt);
+                            command = ffmpeg(ftpUrl);
+                        } else {
+                            throw new Error("FTP config missing for remote file");
+                        }
                     } catch (e) {
                         console.error("[StreamProxy] Failed to setup FTP for transcoding", e);
                         if (!res.headersSent) {
@@ -170,6 +169,7 @@ class StreamProxy {
                         } else {
                             res.end();
                         }
+                        return;
                     }
                 }
 
@@ -177,39 +177,54 @@ class StreamProxy {
                     const isMac = process.platform === 'darwin';
 
                     // Hardware Acceleration & Transcoding Options
-                    // Transcoding solves the keyframe-snap issue, ensuring perfect sync for Audio/Video/Subtitles
+                    // Enhanced settings for perfect A/V sync, especially on remote FTP streams
                     const inputOptions = [
-                        '-fflags +discardcorrupt',
+                        '-fflags +genpts+discardcorrupt+igndts', // Generate PTS, discard corrupt, ignore DTS
+                        '-analyzeduration 20000000',      // Analyze 20s for better stream detection
+                        '-probesize 20000000',            // Read 20MB to ensure headers are valid
+                        '-err_detect ignore_err',         // Be lenient with stream errors
                     ];
+
+                    // For seeking, use accurate seek for better sync
+                    if (startTime > 0) {
+                        inputOptions.push('-accurate_seek'); // More accurate seeking (slower but better sync)
+                    }
 
                     if (isMac) {
                         inputOptions.push('-hwaccel videotoolbox'); // Hardware decoding
                     }
 
                     const outputOptions = [
+                        // MP4 Fragment Options for Streaming
                         '-movflags frag_keyframe+empty_moov+default_base_moof+faststart',
                         '-max_muxing_queue_size 9999',
-                        '-reset_timestamps 1', // Reset timestamps to 0
+                        '-reset_timestamps 1',             // Reset timestamps for clean playback
+                        '-avoid_negative_ts make_zero',    // Handle negative timestamps properly
+
+                        // Audio: Ensure Strict Sync
                         '-c:a aac',
                         '-b:a 192k',
                         '-ac 2',
+                        '-ar 48000',                       // Normalize sample rate
+                        '-af', 'aresample=async=1000:first_pts=0', // Audio sync correction
+
+                        // Video: Enforce Sync
+                        '-vsync cfr',                      // Constant frame rate
+                        '-r 24',                           // Force 24fps output for consistency
                     ];
 
                     // Video Codec Selection
                     if (isMac) {
-                        // MacOS Hardware Acceleration (Very fast seeking & encoding)
+                        // MacOS Hardware Acceleration
                         outputOptions.push('-c:v h264_videotoolbox');
                         outputOptions.push('-b:v 35000k');
                         outputOptions.push('-realtime true');
                     } else {
                         // Universal Fallback (Windows/Linux)
-                        // Use libx264 with 'ultrafast' preset. 
-                        // 'ultrafast' is extremely efficient and allows 4K real-time encoding on decent CPUs.
-                        // We KEEP original resolution (4K) to support powerful PCs.
                         outputOptions.push('-c:v libx264');
                         outputOptions.push('-preset ultrafast');
                         outputOptions.push('-tune zerolatency');
-                        outputOptions.push('-b:v 35000k'); // Maintain high bitrate for quality
+                        outputOptions.push('-b:v 35000k');
                         outputOptions.push('-maxrate 35000k');
                         outputOptions.push('-bufsize 70000k');
                     }
