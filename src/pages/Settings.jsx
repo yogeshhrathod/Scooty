@@ -43,6 +43,7 @@ export const Settings = () => {
     const library = useStore((state) => state.library);
     const clearCache = useStore((state) => state.clearCache);
     const clearLibrary = useStore((state) => state.clearLibrary);
+    const deleteAllData = useStore((state) => state.deleteAllData);
     const resyncLibrary = useStore((state) => state.resyncLibrary);
     const resyncFtpSource = useStore((state) => state.resyncFtpSource);
     const history = useStore((state) => state.history) || {};
@@ -297,8 +298,8 @@ export const Settings = () => {
                                     actionLabel="Format"
                                     variant="danger"
                                     onClick={() => {
-                                        if (window.confirm("This will wipe your library database. Are you sure?")) {
-                                            clearLibrary();
+                                        if (window.confirm("This will wipe ALL data and reset the app. Are you sure?")) {
+                                            deleteAllData();
                                         }
                                     }}
                                 />

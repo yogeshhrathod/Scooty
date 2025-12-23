@@ -11,7 +11,7 @@ Users are often in dark environments. The UI must be dark, high contrast, and im
 -   `bg-surface`: `#121212` (Google Material Dark default)
 -   `bg-surface-elevated`: `#1E1E1E` (Cards, Modals - lighter)
 
-### Accents (Infuse Style)
+### Accents (Scooty Style)
 -   `primary`: `#FF8800` (Sunset Orange) - *Used for Play buttons, Progress bars.*
 -   `secondary`: `#007AFF` (System Blue) - *Used for Selection states, Links.*
 -   `danger`: `#FF453A` (Red) - *Delete actions.*

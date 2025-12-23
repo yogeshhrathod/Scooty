@@ -1,6 +1,6 @@
 # 00. Project Master Plan & Index
 
-## Project Name: Scooty (Infuse Clone)
+## Project Name: Scooty (Scooty Clone)
 **Vision:** A high-performance, aesthetically stunning, cross-platform media player that aggregates content from various sources (Local, FTP, Cloud) into a unified, Netflix-grade interface.
 
 ## Documentation Index

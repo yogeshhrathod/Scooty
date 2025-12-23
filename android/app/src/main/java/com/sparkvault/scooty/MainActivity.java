@@ -1,4 +1,4 @@
-package com.infuse.clone;
+package com.sparkvault.scooty;
 
 import com.getcapacitor.BridgeActivity;
 

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { get, set, del } from 'idb-keyval';
+import { get, set, del, clear } from 'idb-keyval';
 import { metadataService } from '../services/metadata';
 
 // Custom Storage adapter for IndexedDB
@@ -37,6 +37,9 @@ export const useStore = create(
             ignoredPaths: [], // List of paths to exclude
             history: {}, // { movieId: progressSeconds }
             favorites: [],
+            isSetupComplete: false,
+
+            completeSetup: () => set({ isSetupComplete: true }),
 
             // Async action to add and identify
             // Async action to add and identify
@@ -224,17 +227,37 @@ export const useStore = create(
                 history: {},
             })),
 
-            deleteAllData: () => set({
-                library: [],
-                folders: [],
-                ftpSources: [],
-                history: {},
-                favorites: []
-            }),
+            deleteAllData: async () => {
+                try {
+                    // 1. Clear Zustand Store State
+                    set({
+                        library: [],
+                        folders: [],
+                        ftpSources: [],
+                        history: {},
+                        favorites: [],
+                        isSetupComplete: false, // Reset setup status
+                        ignoredPaths: [],
+                    });
+
+                    // 2. Clear IndexedDB
+                    await clear();
+
+                    // 3. Clear LocalStorage
+                    if (typeof localStorage !== 'undefined') {
+                        localStorage.clear();
+                    }
+
+                    // 4. Force Reload to reset memory/state
+                    window.location.reload();
+                } catch (e) {
+                    console.error("Failed to nuke data:", e);
+                }
+            },
 
         }),
         {
-            name: 'infuse-storage',
+            name: 'scooty-storage',
             storage: createJSONStorage(() => storage),
         }
     )

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Layout } from './components/Layout';
 import { Home } from './pages/Home';
@@ -13,6 +13,7 @@ import { TvShowDetails } from './pages/TvShowDetails';
 import { Genres } from './pages/Genres';
 import { useStore } from './store/useStore';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
+import { Welcome } from './pages/Welcome';
 import { PrivacyConsent } from './components/PrivacyConsent';
 
 import { useAnalytics } from './hooks/useAnalytics';
@@ -43,6 +44,7 @@ function AnimatedRoutes() {
 
 function App() {
   const ftpSources = useStore((state) => state.ftpSources) || [];
+  const isSetupComplete = useStore((state) => state.isSetupComplete);
   const [isReady, setIsReady] = useState(false);
   const [hasHydrated, setHasHydrated] = useState(false);
 
@@ -113,11 +115,17 @@ function App() {
           {/* Player is standalone (no sidebar) */}
           <Route path="/play/:id" element={<Player />} />
 
+          {/* Onboarding */}
+          <Route path="/welcome" element={
+            isSetupComplete ? <Navigate to="/" replace /> : <Welcome />
+          } />
+
           {/* Main Layout routes */}
           <Route path="/*" element={
-            <Layout>
-              <AnimatedRoutes />
-            </Layout>
+            !isSetupComplete ? <Navigate to="/welcome" replace /> :
+              <Layout>
+                <AnimatedRoutes />
+              </Layout>
           } />
         </Routes>
         <PrivacyConsent />

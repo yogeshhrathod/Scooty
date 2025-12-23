@@ -1,10 +1,10 @@
-# Infuse Clone
+# Scooty
 
 A cross-platform media player (Web, Windows, Mac, Linux, iOS, Android) built with React, Vite, TailwindCSS, Electron, and Capacitor.
 
 ## Features
 -   **Cross-Platform**: One codebase for all devices.
--   **OTT UI**: Beautiful, premium Netflix/Infuse-style interface.
+-   **OTT UI**: Beautiful, premium Netflix/Scooty-style interface.
 -   **Metadata**: Automatic movie identification using TMDB.
 -   **Library**: Manage local folders and files.
 -   **Player**: Custom video player with subtitle and audio controls.
