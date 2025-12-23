@@ -55,7 +55,7 @@
         rel="stylesheet">
     <link rel="icon" type="image/png" href="logo.png">
     <link rel="stylesheet" href="main.css">
-    <script src="https://unpkg.com/@aptabase/web@latest/dist/index.js"></script>
+
 </head>
 
 <body>
@@ -168,8 +168,7 @@
                     class="dl-btn glitch" data-text="MACOS"
                     onclick="if(typeof Aptabase !== 'undefined') Aptabase.trackEvent('download', { os: 'macos' })">MACOS</a> -->
                 <a href="https://github.com/yogeshhrathod/Scooty/releases/download/v1.0.1/Scooty-Setup-1.0.1.exe"
-                    class="dl-btn glitch" data-text="WINDOWS"
-                    onclick="if(typeof Aptabase !== 'undefined') Aptabase.trackEvent('download', { os: 'windows' })">WINDOWS</a>
+                    class="dl-btn glitch" data-text="WINDOWS">WINDOWS</a>
             </div>
         </section>
     </main>
@@ -178,6 +177,37 @@
         <p>&copy; 2025 SCOOTY MEDIA GROUP // BUILT FOR SPEED</p>
     </footer>
 
+    <script type="module">
+        import { init, trackEvent } from 'https://unpkg.com/@aptabase/web@latest/dist/index.js';
+
+        // Initialize Aptabase
+        init('A-EU-0940594484');
+        trackEvent('page_view', { domain: window.location.hostname });
+
+        // Make trackEvent available globally for debugging
+        window.aptabase = { trackEvent };
+
+        // Attach listeners to download buttons
+        const startTracking = () => {
+            const btns = document.querySelectorAll('.dl-btn');
+            btns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    // Get OS from text or attribute
+                    const os = (btn.getAttribute('data-text') || btn.innerText).trim().toLowerCase();
+
+                    console.log('SCOOTY: Tracking download event for', os);
+                    trackEvent('download', { os });
+                });
+            });
+            console.log('SCOOTY: Analytics initialized. Found ' + btns.length + ' download buttons.');
+        };
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', startTracking);
+        } else {
+            startTracking();
+        }
+    </script>
     <script src="main.js"></script>
 </body>
 

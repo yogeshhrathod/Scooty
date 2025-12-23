@@ -1,9 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Analytics Initialization
-    if (typeof Aptabase !== 'undefined') {
-        Aptabase.init('A-EU-0940594484');
-        Aptabase.trackEvent('page_view', { domain: window.location.hostname });
-    }
+    // Analytics Initialization handled in index.html
 
     // Site Loader Logic
     const loader = document.getElementById('loader');
