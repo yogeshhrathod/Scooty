@@ -14,6 +14,9 @@ permissions:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
+    env:
+      VITE_TMDB_API_KEY: ${{ secrets.VITE_TMDB_API_KEY }}
+      VITE_APTABASE_APP_KEY: ${{ secrets.VITE_APTABASE_APP_KEY }}
 
     strategy:
       matrix:
