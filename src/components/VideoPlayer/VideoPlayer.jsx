@@ -255,12 +255,81 @@ export const VideoPlayer = ({
             originalUrl: url
         };
 
-        setExternalSubtitles(prev => [...prev, newSubtitle]);
-        setSelectedExternalSubtitle(externalSubtitles.length);
+        setExternalSubtitles(prev => {
+            // Check if already exists
+            const exists = prev.findIndex(s => s.url === subtitleUrl);
+            if (exists !== -1) {
+                setTimeout(() => setSelectedExternalSubtitle(exists), 0);
+                return prev;
+            }
+            const newList = [...prev, newSubtitle];
+            setTimeout(() => setSelectedExternalSubtitle(newList.length - 1), 0);
+            return newList;
+        });
+
+        // Save to local storage for persistence
+        if (originalFilePath) {
+            try {
+                const key = `scooty_ext_sub_${originalFilePath}`;
+                localStorage.setItem(key, JSON.stringify(newSubtitle));
+            } catch (e) {
+                console.warn('Failed to save subtitle preference', e);
+            }
+        }
+
         setSelectedSubtitleTrack(null); // Deselect embedded track
         setShowExternalSubtitleDialog(false);
         closeAllMenus();
-    }, [streamBaseUrl, seekOffset, externalSubtitles.length]);
+    }, [streamBaseUrl, seekOffset, originalFilePath]);
+
+    // Restore persisted external subtitle
+    useEffect(() => {
+        if (!streamBaseUrl || !originalFilePath) return;
+
+        const key = `scooty_ext_sub_${originalFilePath}`;
+        try {
+            const saved = localStorage.getItem(key);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+
+                // Fix potential port changes if the stream proxy port changed since save
+                let url = parsed.url;
+                if (url && url.includes('localhost:') && streamBaseUrl) {
+                    const urlObj = new URL(url);
+                    const currentObj = new URL(streamBaseUrl);
+                    // Only update if port differs
+                    if (urlObj.port !== currentObj.port) {
+                        urlObj.protocol = currentObj.protocol;
+                        urlObj.host = currentObj.host;
+                        url = urlObj.toString();
+                    }
+                }
+
+                const restoredSubtitle = { ...parsed, url };
+
+                setExternalSubtitles(prev => {
+                    const idx = prev.findIndex(p => p.url === url);
+                    if (idx !== -1) {
+                        // Already exists, select it
+                        setTimeout(() => {
+                            setSelectedExternalSubtitle(idx);
+                            setSelectedSubtitleTrack(null);
+                        }, 0);
+                        return prev;
+                    }
+                    // Add new
+                    const newList = [...prev, restoredSubtitle];
+                    setTimeout(() => {
+                        setSelectedExternalSubtitle(newList.length - 1);
+                        setSelectedSubtitleTrack(null);
+                    }, 0);
+                    return newList;
+                });
+            }
+        } catch (e) {
+            console.error("Failed to restore saved subtitle", e);
+        }
+    }, [streamBaseUrl, originalFilePath]);
 
     // Load external subtitle from file content
     const loadExternalSubtitleFile = useCallback(async (content, filename) => {
