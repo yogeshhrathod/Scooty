@@ -7,9 +7,11 @@ import { Input } from './ui/input';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { useRef, useEffect } from 'react';
+import { WindowControls } from './WindowControls';
+import { isMac } from '../lib/platform';
+import logo from '../assets/logo.png';
 
 const TitleBar = () => {
-    const isMac = typeof process !== 'undefined' && process.platform === 'darwin';
     const navigate = useNavigate();
     const library = useStore((state) => state.library);
     const [query, setQuery] = useState('');
@@ -34,6 +36,7 @@ const TitleBar = () => {
     }, []);
 
     // Close on click outside
+    // Close on click outside
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
@@ -44,26 +47,14 @@ const TitleBar = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const handleMinimize = () => {
-        if (window.electron) {
-            const { ipcRenderer } = window.electron;
-            ipcRenderer.invoke('window-minimize');
-        }
-    };
-
     const handleMaximize = () => {
         if (window.electron) {
-            const { ipcRenderer } = window.electron;
-            ipcRenderer.invoke('window-maximize-toggle');
+            window.electron.ipcRenderer.invoke('window-maximize-toggle');
         }
     };
 
-    const handleClose = () => {
-        if (window.electron) {
-            const { ipcRenderer } = window.electron;
-            ipcRenderer.invoke('window-close');
-        }
-    };
+
+
 
     // Filter results with grouping for TV shows
     const results = React.useMemo(() => {
@@ -211,19 +202,8 @@ const TitleBar = () => {
                 )}
 
                 {!isMac && (
-                    <div className="flex items-center gap-3 pl-4 border-l border-white/10 ml-4" style={{ WebkitAppRegion: 'no-drag' }}>
-                        <button onClick={handleMinimize} className="p-2 hover:bg-white/10 rounded-full transition-colors group">
-                            <div className="w-3 h-0.5 bg-white group-hover:bg-primary" />
-                        </button>
-                        <button onClick={handleMaximize} className="p-2 hover:bg-white/10 rounded-full transition-colors group">
-                            <div className="w-3 h-3 border border-white group-hover:border-primary" />
-                        </button>
-                        <button onClick={handleClose} className="p-2 hover:bg-red-500/20 rounded-full transition-colors group">
-                            <div className="relative w-3 h-3">
-                                <div className="absolute inset-0 rotate-45 bg-white group-hover:bg-red-500 h-[1px] top-1.5" />
-                                <div className="absolute inset-0 -rotate-45 bg-white group-hover:bg-red-500 h-[1px] top-1.5" />
-                            </div>
-                        </button>
+                    <div className="pl-4 border-l border-white/10 ml-4">
+                        <WindowControls />
                     </div>
                 )}
             </div>
@@ -252,7 +232,7 @@ export const Layout = ({ children }) => {
                         <div className="flex flex-col">
                             {/* Logo */}
                             <div className="font-bold text-xl mb-6 flex items-center gap-2 overflow-hidden">
-                                <img src="/logo.png" alt="Scooty Logo" className="h-8 w-8 rounded-lg flex-shrink-0 object-cover" />
+                                <img src={logo} alt="Scooty Logo" className="h-8 w-8 rounded-lg flex-shrink-0 object-cover" />
                                 <span className={cn("text-neutral-900 dark:text-white transition-opacity duration-200 whitespace-nowrap", open ? "opacity-100" : "opacity-0 hidden")}>
                                     Scooty
                                 </span>

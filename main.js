@@ -5,15 +5,26 @@ const os = require('os');
 
 let mainWindow;
 
+const isDev = !!process.env.ELECTRON_START_URL;
+const iconPath = isDev
+    ? path.join(__dirname, 'public/logo.png')
+    : path.join(__dirname, 'dist/logo.png');
+
+if (process.platform === 'win32') {
+    app.setAppUserModelId('com.scooty.app');
+}
+app.setName('Scooty');
+
 function createWindow() {
     mainWindow = new BrowserWindow({
         width: 1200,
         height: 800,
+        title: 'Scooty',
         titleBarStyle: 'hidden', // Allows full custom header styling
         trafficLightPosition: { x: 15, y: 15 }, // Adjust traffic lights on Mac
         frame: false, // For Windows/Linux custom controls
         backgroundColor: '#000000',
-        icon: path.join(__dirname, 'public/logo.png'), // Set App Icon
+        icon: iconPath, // Set App Icon
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,

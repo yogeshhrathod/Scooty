@@ -5,6 +5,7 @@ import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import loadingAnimation from '../assets/loading.lottie?url';
 import { VideoPlayer } from '../components/VideoPlayer';
 import { useStore } from '../store/useStore';
+import { WindowControls } from '../components/WindowControls';
 
 // Check if we're in Electron environment
 const isElectron = typeof window !== 'undefined' && window.electron;
@@ -184,6 +185,7 @@ export const Player = () => {
                     />
                     <p className="text-white/70 text-sm">Loading media...</p>
                 </div>
+                <WindowControls className="absolute top-4 right-4 z-50" />
             </div>
         );
     }
@@ -191,7 +193,7 @@ export const Player = () => {
     // Error state
     if (error) {
         return (
-            <div className="w-screen h-screen bg-black flex items-center justify-center">
+            <div className="w-screen h-screen bg-black flex items-center justify-center relative">
                 <div className="flex flex-col items-center gap-4 text-center px-8">
                     <p className="text-red-400 text-lg">{error}</p>
                     <button
@@ -201,12 +203,14 @@ export const Player = () => {
                         Go Back
                     </button>
                 </div>
+                <WindowControls className="absolute top-4 right-4 z-50" />
             </div>
         );
     }
 
     return (
-        <div className="w-screen h-screen bg-black">
+        <div className="w-screen h-screen bg-black relative">
+            <WindowControls className="absolute top-4 right-4 z-50" />
             <VideoPlayer
                 src={streamUrl}
                 title={title}

@@ -19,6 +19,7 @@
   "build": {
     "appId": "com.scooty.app",
     "productName": "Scooty",
+    "icon": "resources/icon.png",
     "directories": {
       "output": "dist_electron"
     },
@@ -32,6 +33,7 @@
       "node_modules/@ffprobe-installer/**/*"
     ],
     "mac": {
+      "icon": "resources/icon.icns",
       "category": "public.app-category.entertainment",
       "identity": null,
       "target": [
@@ -45,6 +47,7 @@
       ]
     },
     "win": {
+      "icon": "resources/icon.ico",
       "target": "nsis"
     },
     "linux": {

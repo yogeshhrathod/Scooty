@@ -70,6 +70,7 @@ export const DesktopSidebar = ({
             }}
             onMouseEnter={() => setOpen(true)}
             onMouseLeave={() => setOpen(false)}
+            style={{ WebkitAppRegion: 'no-drag' }}
             {...props}
         >
             {children}
@@ -88,6 +89,7 @@ export const MobileSidebar = ({
             className={cn(
                 "h-10 px-4 py-4 flex flex-row md:hidden  items-center justify-between bg-neutral-100 dark:bg-neutral-800 w-full"
             )}
+            style={{ WebkitAppRegion: 'no-drag' }}
             {...props}
         >
             <div className="flex justify-end z-20 w-full">
