@@ -4,7 +4,7 @@ import { cn } from '../lib/utils';
 import { Sidebar, SidebarBody, SidebarLink } from './ui/sidebar';
 import { Input } from './ui/input';
 
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { useRef, useEffect } from 'react';
 import { WindowControls } from './WindowControls';
@@ -213,7 +213,8 @@ const TitleBar = () => {
 
 export const Layout = ({ children }) => {
     const [open, setOpen] = useState(false);
-    // FTP restoration moved to App.jsx
+    const { pathname } = useLocation();
+    const mainRef = useRef(null);
 
     const links = [
         { label: 'Home', href: '/', icon: <Home className="h-5 w-5 flex-shrink-0" /> },
@@ -223,6 +224,13 @@ export const Layout = ({ children }) => {
         { label: 'Library', href: '/library', icon: <Folder className="h-5 w-5 flex-shrink-0" /> },
         { label: 'Settings', href: '/settings', icon: <Settings className="h-5 w-5 flex-shrink-0" /> },
     ];
+
+    // Scroll to top on navigation
+    useEffect(() => {
+        if (mainRef.current) {
+            mainRef.current.scrollTo(0, 0);
+        }
+    }, [pathname]);
 
     return (
         <div className="flex flex-col md:flex-row bg-background w-full h-screen overflow-hidden">
@@ -250,7 +258,10 @@ export const Layout = ({ children }) => {
                 </SidebarBody>
             </Sidebar>
 
-            <main className="flex-1 flex flex-col h-full relative overflow-y-auto">
+            <main
+                ref={mainRef}
+                className="flex-1 flex flex-col h-full relative overflow-y-auto"
+            >
                 <TitleBar />
                 <div className="p-4 md:p-8 lg:px-12 xl:px-16 2xl:px-20 animate-in fade-in duration-500 w-full">
                     {children}
