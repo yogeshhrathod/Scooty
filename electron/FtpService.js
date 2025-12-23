@@ -4,13 +4,49 @@ const path = require("path")
 class FtpService {
     constructor() {
         this.client = new ftp.Client()
-        this.client.ftp.verbose = true // For debugging
-        this.config = null
+        this.client.ftp.verbose = true
+        this.configs = new Map() // Store multiple FTP configs by host
         this.isConnected = false
     }
 
+    /**
+     * Get the current active config (for legacy compatibility)
+     */
+    get config() {
+        // Return the first config if available
+        if (this.configs.size > 0) {
+            return this.configs.values().next().value
+        }
+        return null
+    }
+
+    /**
+     * Add/update a config in the stored configs map
+     * This is called during app startup to restore configs without connecting
+     */
+    addConfig(config) {
+        if (config && config.host) {
+            console.log(`[FtpService] Adding config for host: ${config.host}`)
+            this.configs.set(config.host, config)
+        }
+    }
+
+    /**
+     * Get a config by host
+     */
+    getConfig(host) {
+        return this.configs.get(host)
+    }
+
+    /**
+     * Get all available configs
+     */
+    getAllConfigs() {
+        return Array.from(this.configs.values())
+    }
+
     async connect(config) {
-        this.config = config
+        this.addConfig(config) // Store it in the map
         try {
             await this.client.access({
                 host: config.host,
@@ -18,141 +54,113 @@ class FtpService {
                 user: config.user,
                 password: config.password,
                 secure: config.secure || false,
-                secureOptions: { rejectUnauthorized: config.rejectUnauthorized !== false } // Default to Secure (true) unless explicitly disabled
+                secureOptions: { rejectUnauthorized: config.rejectUnauthorized !== false }
             })
             this.isConnected = true
-            console.log("FTP Connected")
-            return true
-        } catch (err) {
-            console.error("FTP Connection Error:", err.message)
-            this.isConnected = false
-            throw err
-        }
-    }
-
-    async ensureConnection() {
-        if (this.client.closed && this.config) {
-            console.log("Reconnecting FTP...")
-            try {
-                await this.connect(this.config)
-            } catch (error) {
-                console.warn("Failed to reconnect FTP:", error.message);
-                throw new Error("FTP Reconnection Failed");
-            }
-        }
-    }
-
-    async scanDir(remotePath = "/", depth = 0, maxDepth = 15) {
-        // Prevent infinite recursion
-        if (depth > maxDepth) {
-            console.warn(`[FTP] Max depth ${maxDepth} reached at ${remotePath}, skipping.`);
-            return [];
-        }
-
-        try {
-            await this.ensureConnection()
+            console.log("[FtpService] Connected to", config.host)
         } catch (e) {
-            console.error("[FTP] Skipping scan, no connection.");
-            return [];
+            this.isConnected = false
+            console.error("[FtpService] Connection failed:", e.message)
+            throw e
+        }
+    }
+
+    /**
+     * Ensure connection to a specific host, reconnecting if needed
+     */
+    async ensureConnection(host) {
+        const config = this.configs.get(host)
+        if (!config) {
+            throw new Error(`No config found for host: ${host}`)
         }
 
-        let results = [];
-        const indent = '  '.repeat(depth);
+        // Check if we're connected to the right host
+        // basic-ftp doesn't expose current host, so we track it
+        if (!this.isConnected || this._currentHost !== host) {
+            await this.connect(config)
+            this._currentHost = host
+        }
+    }
 
-        try {
-            console.log(`${indent}[FTP] Scanning: ${remotePath}`);
+    async scanDir(remotePath, maxDepth = 5) {
+        const results = [];
+        const videoExtensions = ['.mp4', '.mkv', '.avi', '.mov', '.webm', '.m4v', '.wmv'];
 
-            // Navigate into the directory first - this avoids issues with spaces/brackets in arguments
+        const scan = async (currentPath, depth) => {
+            if (depth > maxDepth) return;
+
+            let items;
             try {
-                await this.client.cd(remotePath);
-            } catch (err) {
-                console.warn(`${indent}[FTP] Failed to CD into ${remotePath}: ${err.message}`);
-                return [];
+                // Navigate using cd instead of list(path) for better compatibility
+                await this.client.cd(currentPath);
+                items = await this.client.list();
+            } catch (e) {
+                console.warn(`[FtpService] Cannot access ${currentPath}:`, e.message);
+                return;
             }
 
-            // List current directory
-            const listPromise = this.client.list(); // List current dir
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error("FTP List Timeout")), 15000)
-            );
-            const list = await Promise.race([listPromise, timeoutPromise]);
-
-            // Separate directories and files
-            const directories = [];
-            const files = [];
-
-            for (const item of list) {
-                if (item.name.startsWith('.')) continue;
+            for (const item of items) {
+                const fullPath = path.posix.join(currentPath, item.name);
 
                 if (item.isDirectory) {
-                    directories.push(item);
-                } else {
-                    files.push(item);
+                    await scan(fullPath, depth + 1);
+                } else if (item.isFile) {
+                    const ext = path.extname(item.name).toLowerCase();
+                    if (videoExtensions.includes(ext)) {
+                        results.push({
+                            name: item.name,
+                            path: fullPath,
+                            size: item.size,
+                            type: 'video',
+                            source: 'ftp',
+                        });
+                    }
                 }
             }
+        };
 
-            console.log(`${indent}[FTP] Found ${directories.length} dirs, ${files.length} files in ${remotePath}`);
-
-            // Process files first
-            for (const item of files) {
-                const itemPath = path.posix.join(remotePath, item.name);
-                if (/\.(mkv|mp4|avi|mov|wmv|m4v|webm|flv|m2ts|ts)$/i.test(item.name)) {
-                    console.log(`${indent}  [FTP Found] ${item.name}`);
-                    results.push({
-                        name: item.name,
-                        path: itemPath,
-                        size: item.size,
-                        type: 'video',
-                        source: 'ftp'
-                    });
-                }
-            }
-
-            // Process directories SEQUENTIALLY
-            // Note: failing to scan a subdir shouldn't stop the rest
-            for (const item of directories) {
-                const itemPath = path.posix.join(remotePath, item.name);
-                // We must recursively scan. Since scanDir will 'cd' into the absolute path of the child,
-                // we don't need to manually 'cd' back and forth here. scanDir handles the navigation.
-                const subResults = await this.scanDir(itemPath, depth + 1, maxDepth);
-                results = results.concat(subResults);
-            }
-
-        } catch (err) {
-            console.error(`[FTP] Error scanning dir ${remotePath}: ${err.message}`);
-        }
-
-        if (depth === 0) {
-            console.log(`[FTP] Scan complete: Found ${results.length} media files`);
-        }
-
+        await scan(remotePath, 0);
         return results;
     }
 
     /**
-     * Get a dedicated client for streaming to avoid blocking the main command channel
-     * or reusing the main one if we are careful. 
-     * For robust streaming, a dedicated connection is safer.
+     * Create a dedicated FTP client for streaming
+     * Uses the first available config or a specific host if provided
      */
-    async createStreamClient() {
-        const streamClient = new ftp.Client()
-        // copying config
-        if (!this.config) throw new Error("No config available")
+    async createStreamClient(host = null) {
+        let config;
+
+        if (host) {
+            config = this.configs.get(host);
+        }
+
+        if (!config) {
+            // Fallback to first available config
+            config = this.config;
+        }
+
+        if (!config) {
+            throw new Error("No FTP config available for streaming");
+        }
+
+        const streamClient = new ftp.Client();
 
         await streamClient.access({
-            host: this.config.host,
-            port: this.config.port || 21,
-            user: this.config.user,
-            password: this.config.password,
-            secure: this.config.secure || false,
-            secureOptions: { rejectUnauthorized: this.config.rejectUnauthorized !== false }
-        })
-        return streamClient
+            host: config.host,
+            port: config.port || 21,
+            user: config.user,
+            password: config.password,
+            secure: config.secure || false,
+            secureOptions: { rejectUnauthorized: config.rejectUnauthorized !== false }
+        });
+
+        return streamClient;
     }
 
     async disconnect() {
         this.client.close()
         this.isConnected = false
+        this._currentHost = null
     }
 }
 

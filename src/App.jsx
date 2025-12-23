@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Layout } from './components/Layout';
@@ -11,10 +11,10 @@ import { Details } from './pages/Details';
 import { TvShows } from './pages/TvShows';
 import { TvShowDetails } from './pages/TvShowDetails';
 import { Genres } from './pages/Genres';
+import { useStore } from './store/useStore';
 
 function AnimatedRoutes() {
   const location = useLocation();
-  // We can add AnimatePresence here later for route transitions
   return (
     <Routes location={location} key={location.pathname}>
       <Route path="/" element={<Home />} />
@@ -31,6 +31,68 @@ function AnimatedRoutes() {
 }
 
 function App() {
+  const ftpSources = useStore((state) => state.ftpSources) || [];
+  const [isReady, setIsReady] = useState(false);
+  const [hasHydrated, setHasHydrated] = useState(false);
+
+  // Wait for Zustand store to hydrate from IndexedDB
+  useEffect(() => {
+    // Zustand persist has an onRehydrateStorage callback, but we can also 
+    // detect hydration by checking if the store subscription fires
+    const unsubscribe = useStore.persist.onFinishHydration(() => {
+      console.log('[App] Store hydration complete');
+      setHasHydrated(true);
+    });
+
+    // If already hydrated (sync storage), trigger immediately
+    if (useStore.persist.hasHydrated()) {
+      setHasHydrated(true);
+    }
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
+
+  // Restore FTP configs only AFTER store has hydrated
+  useEffect(() => {
+    if (!hasHydrated) return;
+
+    const restoreFtpConfigs = async () => {
+      const sources = useStore.getState().ftpSources || [];
+
+      if (sources.length > 0 && window.electron) {
+        const { ftpService } = await import('./services/ftp');
+        console.log(`[App] Restoring ${sources.length} FTP source(s)...`);
+
+        for (const source of sources) {
+          try {
+            console.log('[App] Restoring FTP config for:', source.host);
+            await ftpService.restoreConfig(source);
+          } catch (e) {
+            console.warn('[App] Failed to restore FTP config:', source.host, e);
+          }
+        }
+      }
+
+      setIsReady(true);
+    };
+
+    restoreFtpConfigs();
+  }, [hasHydrated]);
+
+  // Show loading until both hydration AND FTP restoration are complete
+  if (!isReady) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-black text-white">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-white/70">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <BrowserRouter>
@@ -51,4 +113,3 @@ function App() {
 }
 
 export default App;
-

@@ -119,7 +119,7 @@ ipcMain.handle('ftp-scan', async (event, config) => {
 // Restore FTP config without connecting (for lazy connection on playback)
 ipcMain.handle('ftp-restore-config', async (event, config) => {
     console.log("[FTP] Restoring config for:", config.host);
-    ftpService.config = config;
+    ftpService.addConfig(config);
     return { success: true };
 });
 

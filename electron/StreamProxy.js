@@ -144,28 +144,40 @@ class StreamProxy {
                 if (isLocalFile) {
                     command = ffmpeg(filePath);
                 } else {
-                    // Use native FFmpeg FTP support for better sync/seeking
+                    // Remote FTP file - use FFmpeg native FTP support
                     try {
-                        if (ftpService.config) {
-                            const { user, password, host, port } = ftpService.config;
-                            const encodedUser = encodeURIComponent(user);
-                            const encodedPass = encodeURIComponent(password);
+                        const allConfigs = ftpService.getAllConfigs();
 
-                            // Ensure path starts with / and encode segments
-                            const cleanPath = filePath.startsWith('/') ? filePath : '/' + filePath;
-                            const encodedPath = cleanPath.split('/').map(segment =>
-                                encodeURIComponent(segment)
-                                    .replace(/%5B/g, '[')
-                                    .replace(/%5D/g, ']')
-                            ).join('/');
-
-                            const ftpUrl = `ftp://${encodedUser}:${encodedPass}@${host}:${port || 21}${encodedPath}`;
-                            console.log('[StreamProxy] Using FFmpeg native FTP input:', ftpUrl.replace(/:[^:@]+@/, ':***@')); // Log masked URL
-
-                            command = ffmpeg(ftpUrl);
-                        } else {
-                            throw new Error("FTP config missing for remote file");
+                        if (allConfigs.length === 0) {
+                            console.error('[StreamProxy] No FTP configs available - cannot stream FTP file');
+                            if (!res.headersSent) {
+                                return res.status(503).json({
+                                    error: 'FTP not configured',
+                                    message: 'No FTP sources are configured. Please add an FTP source in settings.'
+                                });
+                            }
+                            return;
                         }
+
+                        // Use the first config (TODO: pass sourceId from frontend for multi-source accuracy)
+                        const activeConfig = allConfigs[0];
+                        const { user, password, host, port } = activeConfig;
+
+                        const encodedUser = encodeURIComponent(user);
+                        const encodedPass = encodeURIComponent(password);
+
+                        // Ensure path starts with / and encode segments
+                        const cleanPath = filePath.startsWith('/') ? filePath : '/' + filePath;
+                        const encodedPath = cleanPath.split('/').map(segment =>
+                            encodeURIComponent(segment)
+                                .replace(/%5B/g, '[')
+                                .replace(/%5D/g, ']')
+                        ).join('/');
+
+                        const ftpUrl = `ftp://${encodedUser}:${encodedPass}@${host}:${port || 21}${encodedPath}`;
+                        console.log(`[StreamProxy] Using FTP config (${host})`, ftpUrl.replace(/:[^:@]+@/, ':***@'));
+
+                        command = ffmpeg(ftpUrl);
                     } catch (e) {
                         console.error("[StreamProxy] Failed to setup FTP for transcoding", e);
                         if (!res.headersSent) {
@@ -279,6 +291,16 @@ class StreamProxy {
             // Standard HTTP Range Stream for FTP (MP4 / Direct Play)
             let client = null;
             try {
+                // Check if FTP is configured
+                const allConfigs = ftpService.getAllConfigs();
+                if (allConfigs.length === 0) {
+                    console.error('[StreamProxy] No FTP configs available for direct streaming');
+                    return res.status(503).json({
+                        error: 'FTP not configured',
+                        message: 'No FTP sources are configured. Please add an FTP source in settings.'
+                    });
+                }
+
                 client = await ftpService.createStreamClient();
                 const size = await client.size(filePath);
 

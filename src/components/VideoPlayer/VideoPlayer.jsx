@@ -613,7 +613,7 @@ export const VideoPlayer = ({
             />
 
             <PlayerControls
-                show={showControls}
+                show={showControls || isLoading || !!error}
                 title={title}
                 onBack={onBack}
                 isPlaying={isPlaying}

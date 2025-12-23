@@ -233,25 +233,7 @@ const TitleBar = () => {
 
 export const Layout = ({ children }) => {
     const [open, setOpen] = useState(false);
-    const ftpSources = useStore((state) => state.ftpSources) || [];
-
-    // Restore FTP config on app startup so playback works without re-syncing
-    useEffect(() => {
-        const restoreFtpConfig = async () => {
-            if (ftpSources.length > 0 && window.electron) {
-                const { ftpService } = await import('../services/ftp');
-                // Use the first FTP source as the active config
-                const firstSource = ftpSources[0];
-                console.log('[Layout] Restoring FTP config for:', firstSource.host);
-                try {
-                    await ftpService.restoreConfig(firstSource);
-                } catch (e) {
-                    console.warn('[Layout] Failed to restore FTP config:', e);
-                }
-            }
-        };
-        restoreFtpConfig();
-    }, []); // Only on mount
+    // FTP restoration moved to App.jsx
 
     const links = [
         { label: 'Home', href: '/', icon: <Home className="h-5 w-5 flex-shrink-0" /> },

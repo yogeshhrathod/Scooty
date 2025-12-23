@@ -34,15 +34,15 @@ class MediaInfoService {
             // Check if it's a local file
             if (!fs.existsSync(filePath)) {
                 // If not local, check if we have FTP credentials
-                if (ftpService.config) {
-                    const { user, password, host, port } = ftpService.config;
+                const allConfigs = ftpService.getAllConfigs();
+                if (allConfigs.length > 0) {
+                    const { user, password, host, port } = allConfigs[0];
                     const encodedUser = encodeURIComponent(user);
                     const encodedPass = encodeURIComponent(password);
 
                     // Ensure path starts with /
                     const cleanPath = filePath.startsWith('/') ? filePath : '/' + filePath;
-                    // Split by / and encode each segment to handle spaces/special chars
-                    // Split by / and encode each segment, but restore brackets which are common in file naming
+                    // Encode each path segment, preserving brackets
                     const encodedPath = cleanPath.split('/').map(segment =>
                         encodeURIComponent(segment)
                             .replace(/%5B/g, '[')
@@ -51,6 +51,8 @@ class MediaInfoService {
 
                     probePath = `ftp://${encodedUser}:${encodedPass}@${host}:${port || 21}${encodedPath}`;
                     console.log('[MediaInfo] Probing remote file via FTP');
+                } else {
+                    console.warn('[MediaInfo] File not found locally and no FTP config available');
                 }
             }
 
