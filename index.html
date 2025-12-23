@@ -3,8 +3,8 @@
 
 <head>
   <meta charset="UTF-8" />
-  <link rel="icon" type="image/png" href="/logo.png" />
-  <link rel="apple-touch-icon" href="/logo.png" />
+  <link rel="icon" type="image/png" href="logo.png" />
+  <link rel="apple-touch-icon" href="logo.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="A powerful cross-platform media player for all your videos, movies, and shows." />
   <title>Scooty - Ultimate Media Player</title>
@@ -13,7 +13,7 @@
       background-color: #000000;
       margin: 0;
       overflow: hidden;
-      /* Prevent scroll on splash */
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
     .splash-container {
@@ -26,45 +26,120 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      background-color: #000000;
+      background: radial-gradient(circle at center, #1a1a1a 0%, #000000 100%);
       z-index: 9999;
+      transition: opacity 0.5s ease-out, visibility 0.5s;
+    }
+
+    .splash-container.fade-out {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .splash-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2rem;
     }
 
     .splash-logo {
-      width: 120px;
-      height: 120px;
-      object-fit: cover;
-      border-radius: 20%;
-      animation: pulse 2s infinite;
+      width: 140px;
+      height: 140px;
+      object-fit: contain;
+      filter: drop-shadow(0 0 20px rgba(249, 115, 22, 0.3));
+      animation: logo-entrance 1.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
     }
 
-    @keyframes pulse {
+    .splash-title {
+      color: white;
+      font-size: 2.5rem;
+      font-weight: 800;
+      letter-spacing: 0.5rem;
+      margin: 0;
+      opacity: 0;
+      animation: text-entrance 1.2s cubic-bezier(0.23, 1, 0.32, 1) 0.3s forwards;
+    }
+
+    .splash-loader {
+      width: 200px;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      overflow: hidden;
+      opacity: 0;
+      animation: fadeIn 0.5s ease 0.6s forwards;
+    }
+
+    .loader-bar {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, #f97316, #fb923c);
+      transform: translateX(-100%);
+      animation: loading 2s infinite cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @keyframes logo-entrance {
+      from {
+        opacity: 0;
+        transform: scale(0.8) translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    @keyframes text-entrance {
+      from {
+        opacity: 0;
+        letter-spacing: 0.2rem;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        letter-spacing: 0.5rem;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes loading {
       0% {
-        opacity: 0.8;
-        transform: scale(1);
+        transform: translateX(-100%);
       }
 
       50% {
-        opacity: 1;
-        transform: scale(1.05);
+        transform: translateX(0);
       }
 
       100% {
-        opacity: 0.8;
-        transform: scale(1);
+        transform: translateX(100%);
+      }
+    }
+
+    @keyframes fadeIn {
+      to {
+        opacity: 1;
       }
     }
   </style>
 </head>
 
 <body>
-  <div id="root">
-    <!-- Initial Splash Screen (Replaced by React) -->
-    <div class="splash-container">
-      <img src="/logo.png" alt="Scooty" class="splash-logo" />
+  <div id="splash-screen" class="splash-container">
+    <div class="splash-content">
+      <img src="logo.png" alt="Scooty" class="splash-logo" />
+      <div class="splash-loader">
+        <div class="loader-bar"></div>
+      </div>
+      <h1 class="splash-title">SCOOTY</h1>
     </div>
   </div>
-  <script type="module" src="/src/main.jsx"></script>
+
+  <div id="root"></div>
+  <script type="module" src="src/main.jsx"></script>
 </body>
 
 </html>

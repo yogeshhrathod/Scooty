@@ -38,8 +38,10 @@ export const useStore = create(
             history: {}, // { movieId: progressSeconds }
             favorites: [],
             isSetupComplete: false,
+            privacyAccepted: false,
 
             completeSetup: () => set({ isSetupComplete: true }),
+            acceptPrivacy: () => set({ privacyAccepted: true }),
 
             // Async action to add and identify
             // Async action to add and identify
@@ -237,6 +239,7 @@ export const useStore = create(
                         history: {},
                         favorites: [],
                         isSetupComplete: false, // Reset setup status
+                        privacyAccepted: false,
                         ignoredPaths: [],
                     });
 

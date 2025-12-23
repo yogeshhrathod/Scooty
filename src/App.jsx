@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Layout } from './components/Layout';
 import { Home } from './pages/Home';
@@ -94,23 +94,29 @@ function App() {
     restoreFtpConfigs();
   }, [hasHydrated]);
 
+  // Handle splash screen visibility
+  useEffect(() => {
+    if (isReady) {
+      const splash = document.getElementById('splash-screen');
+      if (splash) {
+        splash.classList.add('fade-out');
+        setTimeout(() => {
+          splash.style.display = 'none';
+        }, 500); // Match transition duration
+      }
+    }
+  }, [isReady]);
+
   const { trackAppError } = useAnalytics();
 
-  // Show loading until both hydration AND FTP restoration are complete
+  // Show nothing (let the HTML splash screen show) until both hydration AND FTP restoration are complete
   if (!isReady) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-black text-white">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm text-white/70">Loading...</span>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (
     <ErrorBoundary trackError={trackAppError}>
-      <BrowserRouter>
+      <HashRouter>
         <Routes>
           {/* Player is standalone (no sidebar) */}
           <Route path="/play/:id" element={<Player />} />
@@ -129,7 +135,7 @@ function App() {
           } />
         </Routes>
         <PrivacyConsent />
-      </BrowserRouter>
+      </HashRouter>
     </ErrorBoundary>
   );
 }

@@ -1,25 +1,20 @@
-import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useStore } from '../store/useStore';
+import { useAnalytics } from '../hooks/useAnalytics';
 
 export function PrivacyConsent() {
-    const [accepted, setAccepted] = useState(true);
+    const privacyAccepted = useStore((state) => state.privacyAccepted);
+    const acceptPrivacy = useStore((state) => state.acceptPrivacy);
     const location = useLocation();
-
-    useEffect(() => {
-        const hasAccepted = localStorage.getItem('privacy_accepted');
-        setAccepted(!!hasAccepted);
-    }, []);
+    const { trackEvent } = useAnalytics();
 
     const handleAccept = () => {
-        localStorage.setItem('privacy_accepted', 'true');
-        setAccepted(true);
-        // Force reload to init analytics if needed, or rely on next visit. 
-        // Since provider is already wrapped, it might start working immediately if we didn't block it there. 
-        // Aptabase provider is always there, so it's fine.
+        acceptPrivacy();
+        trackEvent('privacy_accepted');
     };
 
     // Don't show if already accepted
-    if (accepted) return null;
+    if (privacyAccepted) return null;
 
     // Don't show if currently viewing the privacy policy page
     if (location.pathname === '/privacy') return null;

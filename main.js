@@ -41,9 +41,14 @@ function createWindow() {
         },
     });
 
-    const startUrl = process.env.ELECTRON_START_URL || `file://${path.join(__dirname, 'dist/index.html')}`;
-    log.info(`Loading URL: ${startUrl}`);
-    mainWindow.loadURL(startUrl);
+    if (process.env.ELECTRON_START_URL) {
+        log.info(`Loading URL from dev server: ${process.env.ELECTRON_START_URL}`);
+        mainWindow.loadURL(process.env.ELECTRON_START_URL);
+    } else {
+        const indexPath = path.join(__dirname, 'dist/index.html');
+        log.info(`Loading file: ${indexPath}`);
+        mainWindow.loadFile(indexPath);
+    }
 
     mainWindow.on('closed', function () {
         log.info('Main window closed');
