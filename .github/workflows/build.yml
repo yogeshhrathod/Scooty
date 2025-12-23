@@ -1,0 +1,53 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v1.0.1)'
+        required: true
+        default: 'v1.0.1'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Application
+        run: |
+          if [ "${{ matrix.os }}" == "macos-latest" ]; then
+            npm run electron:build -- -m --publish always
+          elif [ "${{ matrix.os }}" == "windows-latest" ]; then
+            npm run electron:build -- -w --publish always
+          else
+            npm run electron:build -- -l --publish always
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # This ensures electron-builder sees the version from input if needed
+          APP_VERSION: ${{ github.event.inputs.version }}
+
+      - name: Upload Artifacts (Job Results)
+        uses: actions/upload-artifact@v4
+        with:
+          name: scooty-build-${{ matrix.os }}
+          path: dist_electron/

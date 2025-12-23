@@ -3,6 +3,10 @@
   "private": true,
   "version": "1.0.1",
   "main": "main.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yogeshhrathod/Scooty.git"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -24,6 +28,22 @@
     "directories": {
       "output": "dist_electron"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "yogeshhrathod",
+        "repo": "Scooty"
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.entertainment",
+      "artifactName": "${productName}-${version}.${ext}"
+    },
     "files": [
       "dist/**/*",
       "main.js",
@@ -33,15 +53,9 @@
       "node_modules/@ffmpeg-installer/**/*",
       "node_modules/@ffprobe-installer/**/*"
     ],
-    "mac": {
-      "target": "dmg",
-      "category": "public.app-category.entertainment"
-    },
-    "win": {
-      "target": "nsis"
-    },
     "linux": {
-      "target": "AppImage"
+      "target": "AppImage",
+      "artifactName": "${productName}-${version}.${ext}"
     }
   },
   "dependencies": {
