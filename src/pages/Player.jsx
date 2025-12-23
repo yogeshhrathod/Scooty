@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ChevronLeft } from 'lucide-react';
 import { VideoPlayer } from '../components/VideoPlayer';
 import { useStore } from '../store/useStore';
 
@@ -151,7 +151,15 @@ export const Player = () => {
     // Loading state
     if (isLoading) {
         return (
-            <div className="w-screen h-screen bg-black flex items-center justify-center">
+            <div className="w-screen h-screen bg-black flex items-center justify-center relative">
+                <button
+                    onClick={handleBack}
+                    className="absolute flex items-center justify-center w-11 h-11 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all hover:scale-110 z-50"
+                    style={{ top: '3.5rem', left: '1.5rem' }}
+                    title="Go Back"
+                >
+                    <ChevronLeft size={28} />
+                </button>
                 <div className="flex flex-col items-center gap-4">
                     <Loader2 className="w-12 h-12 text-orange-500 animate-spin" />
                     <p className="text-white/70 text-sm">Loading media...</p>
