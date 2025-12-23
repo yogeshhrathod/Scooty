@@ -48,7 +48,7 @@ export const TvShows = () => {
         <div className="min-h-screen pb-20 px-2 sm:px-4">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 md:mb-8 gap-4">
                 <div>
-                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-neutral-400">
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/60 leading-tight">
                         TV Shows
                     </h1>
                     <div className="flex items-center gap-4 mt-2">
@@ -64,7 +64,7 @@ export const TvShows = () => {
                         placeholder="Search TV shows..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="pl-10 bg-black/50"
+                        className="pl-10 bg-muted/50 focus:bg-muted transition-colors"
                     />
                     <Search className="absolute left-3 top-3.5 w-4 h-4 text-muted-foreground pointer-events-none" />
                 </div>
@@ -72,10 +72,10 @@ export const TvShows = () => {
 
             {filteredShows.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-[50vh] text-center px-4">
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 bg-neutral-800 rounded-full flex items-center justify-center mb-4">
-                        <Tv className="w-6 h-6 sm:w-8 sm:h-8 text-neutral-500" />
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                        <Tv className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
                     </div>
-                    <h3 className="text-lg sm:text-xl font-medium text-white mb-2">No TV shows found</h3>
+                    <h3 className="text-lg sm:text-xl font-medium text-foreground mb-2">No TV shows found</h3>
                     <p className="text-muted-foreground max-w-sm text-sm sm:text-base">
                         {search ? "Try adjusting your search terms." : "Add some folders with TV shows in Settings to get started."}
                     </p>
@@ -85,6 +85,7 @@ export const TvShows = () => {
                     {filteredShows.map((item) => (
                         <MovieCard
                             key={item.groupKey || item.tmdbId || item.path}
+                            item={item}
                             title={item.title}
                             year={item.year}
                             posterPath={item.poster_path}

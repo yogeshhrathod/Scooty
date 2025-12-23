@@ -1,13 +1,15 @@
 import React, { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
-import { Play, ArrowLeft, Clock, Calendar, Star, ChevronRight, Tv, Info, User, Youtube, EyeOff, ChevronDown } from 'lucide-react';
+import { Play, ArrowLeft, Clock, Calendar, Star, ChevronRight, Tv, Info, User, Youtube, EyeOff, ChevronDown, CheckCircle2, Circle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MovieCard } from '../components/MovieCard';
+import { ContextMenu } from '../components/ui/ContextMenu';
+import { cn } from '../lib/utils';
 
 // Quality Badge Component
-const QualityBadge = ({ label, color = "bg-white/10" }) => (
-    <span className={`px-2 py-0.5 ${color} rounded text-[10px] font-bold uppercase tracking-wider`}>
+const QualityBadge = ({ label, color = "bg-muted" }) => (
+    <span className={cn("px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider", color)}>
         {label}
     </span>
 );
@@ -118,13 +120,13 @@ export const TvShowDetails = () => {
 
     if (!show) {
         return (
-            <div className="relative min-h-screen bg-black -m-8 flex items-center justify-center">
+            <div className="relative min-h-screen bg-background -m-8 flex items-center justify-center">
                 <div className="text-center">
-                    <h1 className="text-2xl font-bold text-white mb-4">Show Not Found</h1>
-                    <p className="text-neutral-400 mb-6">The TV show you're looking for doesn't exist in your library.</p>
+                    <h1 className="text-2xl font-bold text-foreground mb-4">Show Not Found</h1>
+                    <p className="text-muted-foreground mb-6">The TV show you're looking for doesn't exist in your library.</p>
                     <button
                         onClick={() => navigate(-1)}
-                        className="px-6 py-2 bg-primary rounded-full text-white hover:bg-primary/80 transition-colors"
+                        className="px-6 py-2 bg-primary rounded-full text-primary-foreground hover:opacity-90 transition-colors"
                     >
                         Go Back
                     </button>
@@ -137,7 +139,7 @@ export const TvShowDetails = () => {
     const sortedSeasons = Object.keys(seasons).sort((a, b) => parseInt(a) - parseInt(b));
 
     return (
-        <div className="relative min-h-screen bg-black -m-8">
+        <div className="relative min-h-screen bg-background -m-8">
             {/* Backdrop Image with Blur */}
             <div className="absolute inset-0 h-[60vh] lg:h-[70vh] w-full overflow-hidden">
                 {show.backdrop_path || show.poster_path ? (
@@ -150,17 +152,17 @@ export const TvShowDetails = () => {
                         <div className="absolute inset-0 backdrop-blur-[2px]" />
                     </>
                 ) : (
-                    <div className="w-full h-full bg-gradient-to-b from-primary/20 to-black" />
+                    <div className="w-full h-full bg-gradient-to-br from-primary/20 to-background" />
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent" />
-                <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-transparent to-black/50" />
+                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-r from-background/50 via-transparent to-background/50" />
             </div>
 
             <div className="relative z-10 px-6 pt-6 md:px-12 md:pt-12 lg:px-16 xl:px-24 2xl:px-32">
                 {/* Back Button */}
                 <button
                     onClick={() => navigate(-1)}
-                    className="flex items-center gap-2 text-white/70 hover:text-white transition-colors mb-8 w-fit group"
+                    className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8 w-fit group"
                 >
                     <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> Back
                 </button>
@@ -172,18 +174,18 @@ export const TvShowDetails = () => {
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ type: "spring", duration: 0.6 }}
-                        className="w-48 md:w-64 lg:w-72 xl:w-80 shrink-0 rounded-2xl overflow-hidden shadow-2xl shadow-black/50 border border-white/10 mx-auto lg:mx-0 relative"
+                        className="w-48 md:w-64 lg:w-72 xl:w-80 shrink-0 rounded-2xl overflow-hidden shadow-2xl shadow-background border border-border/50 mx-auto lg:mx-0 relative"
                     >
                         {show.poster_path ? (
                             <img src={show.poster_path} alt={show.showTitle || show.title} className="w-full h-full object-cover" />
                         ) : (
-                            <div className="w-full aspect-[2/3] bg-neutral-800 flex items-center justify-center text-neutral-500">
+                            <div className="w-full aspect-[2/3] bg-muted flex items-center justify-center text-muted-foreground">
                                 No Poster
                             </div>
                         )}
                         {/* Status Badge */}
                         {show.status && (
-                            <div className="absolute top-4 right-4 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-xs font-bold text-white border border-white/10">
+                            <div className="absolute top-4 right-4 px-3 py-1 bg-background/60 backdrop-blur-md rounded-full text-xs font-bold text-foreground border border-border">
                                 {show.status}
                             </div>
                         )}
@@ -209,7 +211,7 @@ export const TvShowDetails = () => {
                         <motion.h1
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="text-4xl md:text-5xl lg:text-6xl font-bold text-white tracking-tight"
+                            className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground tracking-tight"
                         >
                             {show.showTitle || show.title}
                         </motion.h1>
@@ -219,11 +221,11 @@ export const TvShowDetails = () => {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.1 }}
-                            className="flex flex-wrap items-center justify-center lg:justify-start gap-4 md:gap-6 text-sm md:text-base text-neutral-300"
+                            className="flex flex-wrap items-center justify-center lg:justify-start gap-4 md:gap-6 text-sm md:text-base text-muted-foreground"
                         >
                             {/* Certification */}
                             {show.certification && (
-                                <span className="px-2 py-0.5 border border-white/30 rounded text-white/80 text-xs font-bold">
+                                <span className="px-2 py-0.5 border border-border rounded text-foreground/80 text-xs font-bold">
                                     {show.certification}
                                 </span>
                             )}
@@ -249,7 +251,7 @@ export const TvShowDetails = () => {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.2 }}
-                            className="text-base md:text-lg text-neutral-400 leading-relaxed max-w-3xl mx-auto lg:mx-0"
+                            className="text-base md:text-lg text-muted-foreground leading-relaxed max-w-3xl mx-auto lg:mx-0"
                         >
                             {show.overview || "No overview available."}
                         </motion.p>
@@ -269,7 +271,7 @@ export const TvShowDetails = () => {
                                             e.stopPropagation();
                                             navigate(`/genres/${encodeURIComponent(genre)}`);
                                         }}
-                                        className="px-4 py-1.5 bg-white/5 hover:bg-primary/20 hover:border-primary/50 transition-colors rounded-full text-sm text-white/80 hover:text-white border border-white/10 cursor-pointer"
+                                        className="px-4 py-1.5 bg-muted hover:bg-primary/20 hover:border-primary/50 transition-colors rounded-full text-sm text-foreground/80 hover:text-foreground border border-border cursor-pointer"
                                     >
                                         {genre}
                                     </button>
@@ -286,14 +288,14 @@ export const TvShowDetails = () => {
                         >
                             {show.created_by && show.created_by.length > 0 && (
                                 <div className="flex items-center gap-2">
-                                    <span className="text-neutral-500">Created by</span>
-                                    <span className="text-white">{show.created_by.join(', ')}</span>
+                                    <span className="text-muted-foreground">Created by</span>
+                                    <span className="text-foreground">{show.created_by.join(', ')}</span>
                                 </div>
                             )}
                             {show.networks && show.networks.length > 0 && (
                                 <div className="flex items-center gap-2">
-                                    <span className="text-neutral-500">Network</span>
-                                    <span className="text-white">{show.networks.join(', ')}</span>
+                                    <span className="text-muted-foreground">Network</span>
+                                    <span className="text-foreground">{show.networks.join(', ')}</span>
                                 </div>
                             )}
                         </motion.div>
@@ -314,9 +316,9 @@ export const TvShowDetails = () => {
                                     const title = encodeURIComponent(`${show.showTitle || show.title} - S${ep.season || 1}E${ep.episode || 1}${epTitleStr}`);
                                     navigate(`/play/${playPath}?title=${title}`);
                                 }}
-                                className="flex items-center gap-3 bg-white text-black px-10 py-4 rounded-full font-bold hover:bg-neutral-200 transition-all shadow-lg shadow-white/20 hover:scale-105"
+                                className="flex items-center gap-3 bg-foreground text-background px-10 py-4 rounded-full font-bold hover:opacity-90 transition-all shadow-lg active:scale-95"
                             >
-                                <Play className="w-6 h-6 fill-black" />
+                                <Play className="w-6 h-6 fill-current" />
                                 {lastWatchedEpisode && history[lastWatchedEpisode.path]
                                     ? `Resume S${lastWatchedEpisode.season}E${lastWatchedEpisode.episode}`
                                     : `Play S${allEpisodes[0]?.season || 1}E${allEpisodes[0]?.episode || 1}`
@@ -347,16 +349,16 @@ export const TvShowDetails = () => {
 
                 {/* Seasons & Episodes List */}
                 <div className="mt-16 pb-20 max-w-5xl">
-                    <h2 className="text-2xl font-bold text-white mb-8">Episodes</h2>
+                    <h2 className="text-2xl font-bold text-foreground mb-8">Episodes</h2>
                     <div className="space-y-12">
                         {sortedSeasons.map((seasonNum) => {
                             const eps = seasons[seasonNum];
                             return (
                                 <div key={seasonNum}>
-                                    <div className="flex items-center gap-3 mb-6 sticky top-0 bg-black/90 backdrop-blur-sm z-20 py-4 border-b border-white/5">
+                                    <div className="flex items-center gap-3 mb-6 sticky top-0 bg-background/90 backdrop-blur-sm z-20 py-4 border-b border-border">
                                         <div className="w-1 h-6 bg-primary rounded-full" />
-                                        <h3 className="text-xl font-semibold text-white">Season {seasonNum}</h3>
-                                        <span className="text-sm text-neutral-500">{eps.length} Episodes</span>
+                                        <h3 className="text-xl font-semibold text-foreground">Season {seasonNum}</h3>
+                                        <span className="text-sm text-muted-foreground">{eps.length} Episodes</span>
                                     </div>
                                     <div className="grid gap-4">
                                         {eps.map((ep, idx) => {
@@ -367,70 +369,95 @@ export const TvShowDetails = () => {
                                             const epTitle = ep.title !== ep.name ? ep.title : `Episode ${ep.episode}`;
                                             const epOverview = ep.overview && ep.overview !== show.overview ? ep.overview : `Episode ${ep.episode} from Season ${ep.season}`;
 
-                                            return (
-                                                <motion.div
-                                                    key={ep.id || ep.path}
-                                                    initial={{ opacity: 0, y: 10 }}
-                                                    whileInView={{ opacity: 1, y: 0 }}
-                                                    viewport={{ once: true }}
-                                                    transition={{ delay: idx * 0.05 }}
-                                                    onClick={() => {
+                                            const menuItems = [
+                                                {
+                                                    label: 'Play Episode',
+                                                    icon: <Play className="w-4 h-4 fill-current" />,
+                                                    onClick: () => {
                                                         const playPath = encodeURIComponent(ep.path || ep.id || 'mock');
                                                         const epTitleStr = ep.title && ep.title !== `Episode ${ep.episode}` && ep.title !== ep.name ? ` - ${ep.title}` : '';
                                                         const title = encodeURIComponent(`${show.showTitle || show.title} - S${ep.season}E${ep.episode}${epTitleStr}`);
                                                         navigate(`/play/${playPath}?title=${title}`);
-                                                    }}
-                                                    className="group flex gap-4 md:gap-6 p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-primary/30 transition-all cursor-pointer relative overflow-hidden"
-                                                >
-                                                    {/* Thumbnail */}
-                                                    <div className="w-32 md:w-48 aspect-video shrink-0 rounded-lg overflow-hidden bg-neutral-900 relative">
-                                                        {ep.still_path || show.backdrop_path ? (
-                                                            <img
-                                                                src={ep.still_path ? `https://image.tmdb.org/t/p/w300${ep.still_path}` : (show.backdrop_path || show.poster_path)}
-                                                                alt={`S${ep.season}E${ep.episode}`}
-                                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                                            />
-                                                        ) : (
-                                                            <div className="w-full h-full flex items-center justify-center text-neutral-600">
-                                                                <Tv className="w-8 h-8 opacity-20" />
-                                                            </div>
-                                                        )}
+                                                    }
+                                                },
+                                                { separator: true },
+                                                {
+                                                    label: 'Mark as Watched',
+                                                    icon: <CheckCircle2 className="w-4 h-4" />,
+                                                    onClick: () => useStore.getState().updateHistory(ep.path || ep.id, { progress: 99.9, duration: 100 })
+                                                },
+                                                progress > 0 && {
+                                                    label: 'Clear Progress',
+                                                    icon: <Circle className="w-4 h-4" />,
+                                                    onClick: () => useStore.getState().updateHistory(ep.path || ep.id, 0)
+                                                },
+                                            ].filter(Boolean);
 
-                                                        <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                                                            <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-lg transform scale-0 group-hover:scale-100 transition-transform">
-                                                                <Play className="w-5 h-5 fill-white text-white ml-0.5" />
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Progress bar */}
-                                                        {progress > 0 && (
-                                                            <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
-                                                                <div
-                                                                    className="h-full bg-primary"
-                                                                    style={{ width: `${Math.min(100, (progress / (ep.duration || 1)) * 100)}%` }}
+                                            return (
+                                                <ContextMenu key={ep.id || ep.path} items={menuItems}>
+                                                    <motion.div
+                                                        initial={{ opacity: 0, y: 10 }}
+                                                        whileInView={{ opacity: 1, y: 0 }}
+                                                        viewport={{ once: true }}
+                                                        transition={{ delay: idx * 0.05 }}
+                                                        onClick={() => {
+                                                            const playPath = encodeURIComponent(ep.path || ep.id || 'mock');
+                                                            const epTitleStr = ep.title && ep.title !== `Episode ${ep.episode}` && ep.title !== ep.name ? ` - ${ep.title}` : '';
+                                                            const title = encodeURIComponent(`${show.showTitle || show.title} - S${ep.season}E${ep.episode}${epTitleStr}`);
+                                                            navigate(`/play/${playPath}?title=${title}`);
+                                                        }}
+                                                        className="group flex gap-4 md:gap-6 p-4 rounded-xl bg-muted/30 hover:bg-muted/50 border border-border hover:border-primary/30 transition-all cursor-pointer relative overflow-hidden"
+                                                    >
+                                                        {/* Thumbnail */}
+                                                        <div className="w-32 md:w-48 aspect-video shrink-0 rounded-lg overflow-hidden bg-neutral-900 relative">
+                                                            {ep.still_path || show.backdrop_path ? (
+                                                                <img
+                                                                    src={ep.still_path ? `https://image.tmdb.org/t/p/w300${ep.still_path}` : (show.backdrop_path || show.poster_path)}
+                                                                    alt={`S${ep.season}E${ep.episode}`}
+                                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                                                 />
-                                                            </div>
-                                                        )}
-                                                    </div>
+                                                            ) : (
+                                                                <div className="w-full h-full flex items-center justify-center text-neutral-600">
+                                                                    <Tv className="w-8 h-8 opacity-20" />
+                                                                </div>
+                                                            )}
 
-                                                    {/* Info */}
-                                                    <div className="flex-1 flex flex-col justify-center min-w-0">
-                                                        <div className="flex items-start justify-between gap-4">
-                                                            <div>
-                                                                <h4 className="text-base md:text-lg font-semibold text-white group-hover:text-primary transition-colors truncate pr-4">
-                                                                    {ep.episode}. {epTitle}
-                                                                </h4>
-                                                                <div className="flex items-center gap-2 text-xs text-neutral-500 mt-1 mb-2">
-                                                                    {ep.air_date && <span>{ep.air_date}</span>}
-                                                                    {ep.runtime && <span>• {ep.runtime} min</span>}
+                                                            <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                                                <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-lg transform scale-0 group-hover:scale-100 transition-transform">
+                                                                    <Play className="w-5 h-5 fill-white text-white ml-0.5" />
                                                                 </div>
                                                             </div>
+
+                                                            {/* Progress bar */}
+                                                            {progress > 0 && (
+                                                                <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
+                                                                    <div
+                                                                        className="h-full bg-primary"
+                                                                        style={{ width: `${Math.min(100, (progress / (ep.duration || 1)) * 100)}%` }}
+                                                                    />
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                        <p className="text-sm text-neutral-400 line-clamp-2 md:line-clamp-3">
-                                                            {epOverview}
-                                                        </p>
-                                                    </div>
-                                                </motion.div>
+
+                                                        {/* Info */}
+                                                        <div className="flex-1 flex flex-col justify-center min-w-0">
+                                                            <div className="flex items-start justify-between gap-4">
+                                                                <div>
+                                                                    <h4 className="text-base md:text-lg font-semibold text-foreground group-hover:text-primary transition-colors truncate pr-4">
+                                                                        {ep.episode}. {epTitle}
+                                                                    </h4>
+                                                                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1 mb-2">
+                                                                        {ep.air_date && <span>{ep.air_date}</span>}
+                                                                        {ep.runtime && <span>• {ep.runtime} min</span>}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <p className="text-sm text-muted-foreground line-clamp-2 md:line-clamp-3">
+                                                                {epOverview}
+                                                            </p>
+                                                        </div>
+                                                    </motion.div>
+                                                </ContextMenu>
                                             );
                                         })}
                                     </div>

@@ -108,7 +108,7 @@ export const AddFtpModal = ({ isOpen, onClose }) => {
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0, y: 20 }}
                             onClick={(e) => e.stopPropagation()}
-                            className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-white/10 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden"
+                            className="bg-card border border-border w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden"
                         >
                             {/* Header */}
                             <div className="p-6 border-b border-neutral-200 dark:border-white/10 flex items-center justify-between">
@@ -117,11 +117,11 @@ export const AddFtpModal = ({ isOpen, onClose }) => {
                                         <Server className="w-6 h-6" />
                                     </div>
                                     <div>
-                                        <h2 className="text-xl font-bold text-neutral-900 dark:text-white">Add FTP Source</h2>
-                                        <p className="text-sm text-neutral-500 dark:text-neutral-400">Connect to a remote FTP server</p>
+                                        <h2 className="text-xl font-bold text-foreground">Add FTP Source</h2>
+                                        <p className="text-sm text-muted-foreground">Connect to a remote FTP server</p>
                                     </div>
                                 </div>
-                                <button onClick={onClose} className="p-2 hover:bg-neutral-100 dark:hover:bg-white/10 rounded-full transition-colors text-neutral-500">
+                                <button onClick={onClose} className="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground">
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
@@ -131,83 +131,83 @@ export const AddFtpModal = ({ isOpen, onClose }) => {
 
                                 <div className="grid grid-cols-3 gap-4">
                                     <div className="col-span-2 space-y-2">
-                                        <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Host / IP</label>
+                                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Host / IP</label>
                                         <div className="relative">
-                                            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                                            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                             <input
                                                 type="text"
                                                 name="host"
                                                 value={formData.host}
                                                 onChange={handleChange}
                                                 placeholder="192.168.1.50"
-                                                className="w-full bg-neutral-100 dark:bg-white/5 border-transparent focus:border-primary focus:ring-0 rounded-xl pl-10 pr-4 py-3 text-neutral-900 dark:text-white transition-all outline-none"
+                                                className="w-full bg-muted/50 border-transparent focus:border-primary focus:ring-0 rounded-xl pl-10 pr-4 py-3 text-foreground transition-all outline-none"
                                                 required
                                             />
                                         </div>
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Port</label>
+                                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Port</label>
                                         <input
                                             type="number"
                                             name="port"
                                             value={formData.port}
                                             onChange={handleChange}
                                             placeholder="21"
-                                            className="w-full bg-neutral-100 dark:bg-white/5 border-transparent focus:border-primary focus:ring-0 rounded-xl px-4 py-3 text-neutral-900 dark:text-white transition-all outline-none"
+                                            className="w-full bg-muted/50 border-transparent focus:border-primary focus:ring-0 rounded-xl px-4 py-3 text-foreground transition-all outline-none"
                                         />
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Username</label>
+                                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Username</label>
                                         <input
                                             type="text"
                                             name="user"
                                             value={formData.user}
                                             onChange={handleChange}
                                             placeholder="user"
-                                            className="w-full bg-neutral-100 dark:bg-white/5 border-transparent focus:border-primary focus:ring-0 rounded-xl px-4 py-3 text-neutral-900 dark:text-white transition-all outline-none"
+                                            className="w-full bg-muted/50 border-transparent focus:border-primary focus:ring-0 rounded-xl px-4 py-3 text-foreground transition-all outline-none"
                                             required
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Password</label>
+                                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Password</label>
                                         <input
                                             type="password"
                                             name="password"
                                             value={formData.password}
                                             onChange={handleChange}
                                             placeholder="••••••"
-                                            className="w-full bg-neutral-100 dark:bg-white/5 border-transparent focus:border-primary focus:ring-0 rounded-xl px-4 py-3 text-neutral-900 dark:text-white transition-all outline-none"
+                                            className="w-full bg-muted/50 border-transparent focus:border-primary focus:ring-0 rounded-xl px-4 py-3 text-foreground transition-all outline-none"
                                         />
                                     </div>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Remote Path</label>
+                                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Remote Path</label>
                                     <input
                                         type="text"
                                         name="remotePath"
                                         value={formData.remotePath}
                                         onChange={handleChange}
                                         placeholder="/Movies"
-                                        className="w-full bg-neutral-100 dark:bg-white/5 border-transparent focus:border-primary focus:ring-0 rounded-xl px-4 py-3 text-neutral-900 dark:text-white transition-all outline-none"
+                                        className="w-full bg-muted/50 border-transparent focus:border-primary focus:ring-0 rounded-xl px-4 py-3 text-foreground transition-all outline-none"
                                     />
                                 </div>
 
                                 <div className="flex flex-col gap-3 pt-2">
-                                    <label className="flex items-center gap-3 p-3 bg-neutral-100 dark:bg-white/5 rounded-xl cursor-pointer hover:bg-neutral-200 dark:hover:bg-white/10 transition">
+                                    <label className="flex items-center gap-3 p-3 bg-muted rounded-xl cursor-pointer hover:opacity-80 transition">
                                         <input
                                             type="checkbox"
                                             name="secure"
                                             checked={formData.secure}
                                             onChange={handleChange}
-                                            className="w-5 h-5 rounded border-neutral-300 text-primary focus:ring-primary"
+                                            className="w-5 h-5 rounded border-border text-primary focus:ring-primary"
                                         />
                                         <div>
-                                            <div className="text-sm font-bold text-neutral-900 dark:text-white">Use Secure Connection (FTPS)</div>
-                                            <div className="text-xs text-neutral-500">Encrypts the connection (TLS/SSL).</div>
+                                            <div className="text-sm font-bold text-foreground">Use Secure Connection (FTPS)</div>
+                                            <div className="text-xs text-muted-foreground">Encrypts the connection (TLS/SSL).</div>
                                         </div>
                                     </label>
 
@@ -247,7 +247,7 @@ export const AddFtpModal = ({ isOpen, onClose }) => {
                                     <button
                                         type="button"
                                         onClick={onClose}
-                                        className="px-4 py-2 text-sm font-medium text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
+                                        className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                                     >
                                         Cancel
                                     </button>
@@ -255,7 +255,7 @@ export const AddFtpModal = ({ isOpen, onClose }) => {
                                         type="submit"
                                         disabled={status === 'testing' || status === 'syncing' || status === 'success'}
                                         className={cn(
-                                            "px-6 py-2 bg-primary text-black font-bold rounded-xl text-sm transition-all hover:brightness-110 active:scale-95 flex items-center gap-2",
+                                            "px-6 py-2 bg-primary text-primary-foreground font-bold rounded-xl text-sm transition-all hover:opacity-90 active:scale-95 flex items-center gap-2",
                                             (status === 'testing' || status === 'syncing' || status === 'success') && "opacity-70 cursor-not-allowed"
                                         )}
                                     >

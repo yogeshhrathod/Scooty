@@ -39,9 +39,11 @@ export const useStore = create(
             favorites: [],
             isSetupComplete: false,
             privacyAccepted: false,
+            theme: 'system', // 'light' | 'dark' | 'system'
 
             completeSetup: () => set({ isSetupComplete: true }),
             acceptPrivacy: () => set({ privacyAccepted: true }),
+            setTheme: (theme) => set({ theme }),
 
             // Async action to add and identify
             // Async action to add and identify

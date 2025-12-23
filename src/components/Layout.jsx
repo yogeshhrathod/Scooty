@@ -113,7 +113,7 @@ const TitleBar = () => {
 
     return (
         <header
-            className="h-20 flex items-center justify-between px-6 sticky top-0 z-50 bg-background/80 backdrop-blur-xl select-none border-b border-white/5"
+            className="h-20 flex items-center justify-between px-6 sticky top-0 z-50 bg-background/80 backdrop-blur-xl select-none border-b border-border/50"
             style={{ WebkitAppRegion: 'drag' }}
             onDoubleClick={handleMaximize}
         >
@@ -126,7 +126,7 @@ const TitleBar = () => {
             <div className="flex-1 flex justify-center max-w-xl mx-auto relative" style={{ WebkitAppRegion: 'no-drag' }} ref={wrapperRef}>
                 <div className={`relative w-full transition-all duration-300 ${isFocused ? 'scale-100' : 'scale-95 opacity-80'}`}>
                     <div className="relative group">
-                        <Search className={`absolute left-4 top-2.5 w-4 h-4 transition-colors ${isFocused ? 'text-primary' : 'text-neutral-500 group-hover:text-neutral-300'}`} />
+                        <Search className={`absolute left-4 top-2.5 w-4 h-4 transition-colors ${isFocused ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}`} />
                         <Input
                             ref={inputRef}
                             type="text"
@@ -134,10 +134,10 @@ const TitleBar = () => {
                             onChange={(e) => setQuery(e.target.value)}
                             onFocus={() => setIsFocused(true)}
                             placeholder="Search library..."
-                            className="w-full pl-10 pr-12 h-10 bg-neutral-900/50 border border-white/10 focus:border-primary/50 focus:bg-neutral-900 focus:ring-1 focus:ring-primary/50 rounded-lg transition-all duration-300 text-sm placeholder:text-neutral-600 shadow-md"
+                            className="w-full pl-10 pr-12 h-10 bg-muted/50 border border-border focus:border-primary/50 focus:bg-muted focus:ring-1 focus:ring-primary/50 rounded-lg transition-all duration-300 text-sm placeholder:text-muted-foreground shadow-md"
                         />
                         <div className="absolute right-3 top-2.5 flex items-center gap-1 pointer-events-none">
-                            <kbd className="hidden md:inline-flex h-5 items-center gap-1 rounded border border-white/10 bg-white/5 px-1.5 font-mono text-[10px] font-medium text-neutral-400">
+                            <kbd className="hidden md:inline-flex h-5 items-center gap-1 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
                                 <span className="text-xs">⌘</span>K
                             </kbd>
                         </div>
@@ -145,22 +145,22 @@ const TitleBar = () => {
 
                     {/* Search Results Dropdown */}
                     {isFocused && query.length >= 2 && (
-                        <div className="absolute top-full left-0 right-0 mt-2 bg-neutral-900 border border-white/10 rounded-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                             {results.length > 0 ? (
                                 <div className="p-1 max-h-[60vh] overflow-y-auto custom-scrollbar">
-                                    <div className="text-[10px] font-bold text-neutral-500 px-3 py-2 uppercase tracking-wider">Top Results</div>
+                                    <div className="text-[10px] font-bold text-muted-foreground px-3 py-2 uppercase tracking-wider">Top Results</div>
                                     {results.map((item) => (
                                         <button
                                             key={item.id || item.path}
                                             onClick={() => handleResultClick(item)}
                                             className="w-full flex items-center gap-3 p-2 rounded-md hover:bg-white/10 transition-colors group text-left"
                                         >
-                                            <div className="w-8 h-12 bg-neutral-800 rounded overflow-hidden shrink-0 shadow-sm border border-white/5">
+                                            <div className="w-8 h-12 bg-muted rounded overflow-hidden shrink-0 shadow-sm border border-border">
                                                 {item.poster_path ? (
                                                     <img src={item.poster_path} alt="" className="w-full h-full object-cover" />
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center">
-                                                        {item.type === 'tv' ? <Tv className="w-3 h-3 text-neutral-600" /> : <Film className="w-3 h-3 text-neutral-600" />}
+                                                        {item.type === 'tv' ? <Tv className="w-3 h-3 text-muted-foreground" /> : <Film className="w-3 h-3 text-muted-foreground" />}
                                                     </div>
                                                 )}
                                             </div>
@@ -202,7 +202,7 @@ const TitleBar = () => {
                 )}
 
                 {!isMac && (
-                    <div className="pl-4 border-l border-white/10 ml-4">
+                    <div className="pl-4 border-l border-border ml-4">
                         <WindowControls />
                     </div>
                 )}
@@ -241,7 +241,7 @@ export const Layout = ({ children }) => {
                             {/* Logo */}
                             <div className="font-bold text-xl mb-6 flex items-center gap-2 overflow-hidden">
                                 <img src={logo} alt="Scooty Logo" className="h-8 w-8 rounded-lg flex-shrink-0 object-cover" />
-                                <span className={cn("text-neutral-900 dark:text-white transition-opacity duration-200 whitespace-nowrap", open ? "opacity-100" : "opacity-0 hidden")}>
+                                <span className={cn("text-foreground transition-opacity duration-200 whitespace-nowrap", open ? "opacity-100" : "opacity-0 hidden")}>
                                     Scooty
                                 </span>
                             </div>

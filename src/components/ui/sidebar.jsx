@@ -62,7 +62,7 @@ export const DesktopSidebar = ({
     return (
         <motion.div
             className={cn(
-                "h-full px-4 py-4 hidden  md:flex md:flex-col bg-neutral-100 dark:bg-black w-[250px] flex-shrink-0 pt-10",
+                "h-full px-4 py-4 hidden md:flex md:flex-col bg-muted/30 dark:bg-card w-[250px] flex-shrink-0 pt-10 border-r border-border/50",
                 className
             )}
             animate={{
@@ -87,14 +87,14 @@ export const MobileSidebar = ({
     return (
         <div
             className={cn(
-                "h-10 px-4 py-4 flex flex-row md:hidden  items-center justify-between bg-neutral-100 dark:bg-neutral-800 w-full"
+                "h-10 px-4 py-4 flex flex-row md:hidden items-center justify-between bg-muted w-full border-b border-border"
             )}
             style={{ WebkitAppRegion: 'no-drag' }}
             {...props}
         >
             <div className="flex justify-end z-20 w-full">
                 <Menu
-                    className="text-neutral-800 dark:text-neutral-200"
+                    className="text-foreground"
                     onClick={() => setOpen(!open)}
                 />
             </div>
@@ -109,12 +109,12 @@ export const MobileSidebar = ({
                             ease: "easeInOut",
                         }}
                         className={cn(
-                            "fixed h-full w-full inset-0 bg-white dark:bg-neutral-900 p-10 z-[100] flex flex-col justify-between",
+                            "fixed h-full w-full inset-0 bg-background p-10 z-[100] flex flex-col justify-between",
                             className
                         )}
                     >
                         <div
-                            className="absolute right-10 top-10 z-50 text-neutral-800 dark:text-neutral-200"
+                            className="absolute right-10 top-10 z-50 text-foreground"
                             onClick={() => setOpen(!open)}
                         >
                             <X />
@@ -141,7 +141,7 @@ export const SidebarLink = ({
             to={link.href}
             className={cn(
                 "flex items-center justify-start gap-2 group/sidebar py-2",
-                isActive ? "text-primary" : "text-neutral-700 dark:text-neutral-200",
+                isActive ? "text-primary" : "text-muted-foreground hover:text-foreground",
                 className
             )}
             {...props}

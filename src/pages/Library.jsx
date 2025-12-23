@@ -60,14 +60,14 @@ export const Library = () => {
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 md:mb-8 gap-4">
                 <div>
                     {/* "My Library" text with Aceternity gradient style if preferred, keeping existing gradient for now */}
-                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-neutral-400">
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/60 leading-tight">
                         My Library
                     </h1>
                     <div className="flex items-center gap-4 mt-2">
                         <p className="text-muted-foreground text-sm sm:text-base">
                             {filteredLibrary.length} items
                         </p>
-                        <div className="h-4 w-[1px] bg-neutral-700" />
+                        <div className="h-4 w-[1px] bg-border" />
                         <button
                             onClick={() => useStore.getState().resyncLibrary()}
                             className="text-xs flex items-center gap-1 text-primary hover:text-primary/80 transition-colors"
@@ -85,7 +85,7 @@ export const Library = () => {
                         placeholder="Filter library..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="pl-10 bg-black/50"
+                        className="pl-10 bg-muted/50 focus:bg-muted transition-colors"
                     />
                     <Search className="absolute left-3 top-3.5 w-4 h-4 text-muted-foreground pointer-events-none" />
                 </div>
@@ -93,10 +93,10 @@ export const Library = () => {
 
             {filteredLibrary.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-[50vh] text-center">
-                    <div className="w-16 h-16 bg-neutral-800 rounded-full flex items-center justify-center mb-4">
-                        <Search className="w-8 h-8 text-neutral-500" />
+                    <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                        <Search className="w-8 h-8 text-muted-foreground" />
                     </div>
-                    <h3 className="text-xl font-medium text-white mb-2">No media found</h3>
+                    <h3 className="text-xl font-medium text-foreground mb-2">No media found</h3>
                     <p className="text-muted-foreground max-w-sm">
                         {search ? "Try adjusting your search terms." : "Add some folders or FTP sources in Settings to get started."}
                     </p>
@@ -106,6 +106,7 @@ export const Library = () => {
                     {filteredLibrary.map((item) => (
                         <MovieCard
                             key={item.groupKey || item.id || item.tmdbId || item.path}
+                            item={item}
                             title={item.title || item.name}
                             year={item.year}
                             posterPath={item.poster_path}

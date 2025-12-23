@@ -108,15 +108,15 @@ export const Home = () => {
                     transition={{ duration: 0.5 }}
                     className="z-10"
                 >
-                    <h1 className="text-4xl md:text-6xl font-black bg-clip-text text-transparent bg-gradient-to-b from-neutral-50 to-neutral-400 pb-4">
+                    <h1 className="text-4xl md:text-6xl font-black bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/60 pb-4 leading-tight">
                         Welcome to Scooty
                     </h1>
-                    <p className="mt-4 text-lg text-neutral-400 max-w-lg mx-auto">
+                    <p className="mt-4 text-lg text-muted-foreground max-w-lg mx-auto">
                         Your personal media sanctuary. Add your library to get started.
                     </p>
                     <button
                         onClick={() => navigate('/settings')}
-                        className="mt-8 px-8 py-3 bg-primary rounded-full text-white font-semibold hover:bg-primary/90 transition-all hover:scale-105 shadow-lg shadow-primary/20"
+                        className="mt-8 px-8 py-3 bg-primary rounded-full text-primary-foreground font-semibold hover:opacity-90 transition-all hover:scale-105 shadow-lg shadow-primary/20"
                     >
                         Setup Library
                     </button>
@@ -143,12 +143,13 @@ export const Home = () => {
                     <section>
                         <motion.div variants={itemVariants} className="flex items-center gap-3 mb-6">
                             <div className="w-1 h-8 bg-primary rounded-full" />
-                            <h2 className="text-2xl md:text-3xl font-bold text-neutral-100">Continue Watching</h2>
+                            <h2 className="text-2xl md:text-3xl font-bold text-foreground">Continue Watching</h2>
                         </motion.div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
                             {continueWatchingItems.slice(0, 6).map((item) => (
                                 <MovieCard
                                     key={item.id || item.tmdbId || item.path}
+                                    item={item}
                                     title={item.title || item.name}
                                     year={item.year || item.release_date?.split('-')[0]}
                                     posterPath={item.poster_path || item.backdrop_path}
@@ -165,12 +166,13 @@ export const Home = () => {
                     <section>
                         <motion.div variants={itemVariants} className="flex items-center gap-3 mb-6">
                             <div className="w-1 h-8 bg-blue-500 rounded-full" />
-                            <h2 className="text-2xl md:text-3xl font-bold text-neutral-100">Recent Movies</h2>
+                            <h2 className="text-2xl md:text-3xl font-bold text-foreground">Recent Movies</h2>
                         </motion.div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
                             {moviesOnly.slice(0, 12).map((movie) => (
                                 <MovieCard
                                     key={movie.id || movie.tmdbId || movie.path}
+                                    item={movie}
                                     title={movie.title}
                                     year={movie.year || movie.release_date?.split('-')[0]}
                                     posterPath={movie.poster_path}
@@ -186,12 +188,13 @@ export const Home = () => {
                     <section>
                         <motion.div variants={itemVariants} className="flex items-center gap-3 mb-6">
                             <div className="w-1 h-8 bg-orange-500 rounded-full" />
-                            <h2 className="text-2xl md:text-3xl font-bold text-neutral-100">TV Shows</h2>
+                            <h2 className="text-2xl md:text-3xl font-bold text-foreground">TV Shows</h2>
                         </motion.div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
                             {tvShowsOnly.slice(0, 12).map((show) => (
                                 <MovieCard
                                     key={show.groupKey || show.tmdbId || show.path}
+                                    item={show}
                                     title={show.title}
                                     year={show.year}
                                     posterPath={show.poster_path}

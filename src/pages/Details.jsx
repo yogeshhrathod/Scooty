@@ -6,8 +6,8 @@ import { motion } from 'framer-motion';
 import { MovieCard } from '../components/MovieCard';
 
 // Quality Badge Component
-const QualityBadge = ({ label, color = "bg-white/10" }) => (
-    <span className={`px-2 py-0.5 ${color} rounded text-[10px] font-bold uppercase tracking-wider`}>
+const QualityBadge = ({ label, color = "bg-muted" }) => (
+    <span className={cn("px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider", color)}>
         {label}
     </span>
 );
@@ -20,7 +20,7 @@ const ActorCard = ({ actor, index }) => (
         transition={{ delay: 0.3 + index * 0.05 }}
         className="flex flex-col items-center text-center group cursor-pointer"
     >
-        <div className="w-20 h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 rounded-full overflow-hidden bg-neutral-800 border-2 border-transparent group-hover:border-primary transition-colors shadow-lg">
+        <div className="w-20 h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 rounded-full overflow-hidden bg-muted border-2 border-transparent group-hover:border-primary transition-colors shadow-lg">
             {actor.profile_path ? (
                 <img
                     src={actor.profile_path}
@@ -29,13 +29,13 @@ const ActorCard = ({ actor, index }) => (
                     loading="lazy"
                 />
             ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-neutral-700 to-neutral-800">
-                    <User className="w-8 h-8 text-neutral-500" />
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
+                    <User className="w-8 h-8 text-muted-foreground" />
                 </div>
             )}
         </div>
-        <p className="mt-2 text-sm font-medium text-white truncate max-w-[100px] lg:max-w-[120px]">{actor.name}</p>
-        <p className="text-xs text-neutral-500 truncate max-w-[100px] lg:max-w-[120px]">{actor.character}</p>
+        <p className="mt-2 text-sm font-medium text-foreground truncate max-w-[100px] lg:max-w-[120px]">{actor.name}</p>
+        <p className="text-xs text-muted-foreground truncate max-w-[100px] lg:max-w-[120px]">{actor.character}</p>
     </motion.div>
 );
 
@@ -45,8 +45,8 @@ const InfoRow = ({ icon: Icon, label, value }) => {
     return (
         <div className="flex items-center gap-3 text-sm">
             <Icon className="w-4 h-4 text-primary shrink-0" />
-            <span className="text-neutral-500">{label}</span>
-            <span className="text-white">{value}</span>
+            <span className="text-muted-foreground">{label}</span>
+            <span className="text-foreground">{value}</span>
         </div>
     );
 };
@@ -171,13 +171,13 @@ export const Details = () => {
 
     if (!item) {
         return (
-            <div className="relative min-h-screen bg-black/90 -m-8 flex items-center justify-center">
+            <div className="relative min-h-screen bg-background/90 -m-8 flex items-center justify-center">
                 <div className="text-center">
-                    <h1 className="text-2xl font-bold text-white mb-4">Item Not Found</h1>
-                    <p className="text-neutral-400 mb-6">The content you're looking for doesn't exist in your library.</p>
+                    <h1 className="text-2xl font-bold text-foreground mb-4">Item Not Found</h1>
+                    <p className="text-muted-foreground mb-6">The content you're looking for doesn't exist in your library.</p>
                     <button
                         onClick={() => navigate(-1)}
-                        className="px-6 py-2 bg-primary rounded-full text-white hover:bg-primary/80 transition-colors"
+                        className="px-6 py-2 bg-primary rounded-full text-primary-foreground hover:opacity-90 transition-colors"
                     >
                         Go Back
                     </button>
@@ -196,7 +196,7 @@ export const Details = () => {
     };
 
     return (
-        <div className="relative min-h-screen bg-black -m-4 md:-m-8 lg:-mx-12 lg:-my-8 xl:-mx-16 2xl:-mx-20">
+        <div className="relative min-h-screen bg-background -m-4 md:-m-8 lg:-mx-12 lg:-my-8 xl:-mx-16 2xl:-mx-20">
             {/* Backdrop Image with Blur */}
             <div className="absolute inset-0 h-[70vh] lg:h-[80vh] w-full overflow-hidden">
                 {item.backdrop_path || item.poster_path ? (
@@ -209,17 +209,17 @@ export const Details = () => {
                         <div className="absolute inset-0 backdrop-blur-[2px]" />
                     </>
                 ) : (
-                    <div className="w-full h-full bg-gradient-to-b from-primary/20 to-black" />
+                    <div className="w-full h-full bg-gradient-to-br from-primary/20 to-background" />
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent" />
-                <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-transparent to-black/50" />
+                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-r from-background/50 via-transparent to-background/50" />
             </div>
 
             <div className="relative z-10 px-6 pt-6 md:px-12 md:pt-12 lg:px-16 xl:px-24 2xl:px-32">
                 {/* Back Button */}
                 <button
                     onClick={() => navigate(-1)}
-                    className="flex items-center gap-2 text-white/70 hover:text-white transition-colors mb-8 w-fit group"
+                    className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8 w-fit group"
                 >
                     <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> Back
                 </button>
@@ -231,18 +231,18 @@ export const Details = () => {
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ type: "spring", duration: 0.6 }}
-                        className="w-56 md:w-72 lg:w-80 xl:w-96 shrink-0 rounded-2xl overflow-hidden shadow-2xl shadow-black/50 border border-white/10 mx-auto lg:mx-0 relative group"
+                        className="w-56 md:w-72 lg:w-80 xl:w-96 shrink-0 rounded-2xl overflow-hidden shadow-2xl shadow-background border border-border/50 mx-auto lg:mx-0 relative group"
                     >
                         {item.poster_path ? (
                             <img src={item.poster_path} alt={item.title} className="w-full h-full object-cover" />
                         ) : (
-                            <div className="w-full aspect-[2/3] bg-neutral-800 flex items-center justify-center text-neutral-500">
+                            <div className="w-full aspect-[2/3] bg-muted flex items-center justify-center text-muted-foreground">
                                 No Poster
                             </div>
                         )}
                         {/* Status Badge */}
                         {item.status && (
-                            <div className="absolute top-4 right-4 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-xs font-bold text-white border border-white/10">
+                            <div className="absolute top-4 right-4 px-3 py-1 bg-background/60 backdrop-blur-md rounded-full text-xs font-bold text-foreground border border-border">
                                 {item.status}
                             </div>
                         )}
@@ -267,7 +267,7 @@ export const Details = () => {
                         <motion.h1
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-white tracking-tight"
+                            className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-foreground tracking-tight"
                         >
                             {item.title || item.name}
                         </motion.h1>
@@ -278,7 +278,7 @@ export const Details = () => {
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 transition={{ delay: 0.1 }}
-                                className="text-lg md:text-xl text-neutral-400 italic"
+                                className="text-lg md:text-xl text-muted-foreground italic"
                             >
                                 "{item.tagline}"
                             </motion.p>
@@ -289,11 +289,11 @@ export const Details = () => {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.1 }}
-                            className="flex flex-wrap items-center justify-center lg:justify-start gap-4 md:gap-6 text-sm md:text-base text-neutral-300"
+                            className="flex flex-wrap items-center justify-center lg:justify-start gap-4 md:gap-6 text-sm md:text-base text-muted-foreground"
                         >
                             {/* Certification */}
                             {item.certification && (
-                                <span className="px-2 py-0.5 border border-white/30 rounded text-white/80 text-xs font-bold">
+                                <span className="px-2 py-0.5 border border-border rounded text-foreground/80 text-xs font-bold">
                                     {item.certification}
                                 </span>
                             )}
@@ -331,7 +331,7 @@ export const Details = () => {
                                             e.stopPropagation();
                                             navigate(`/genres/${encodeURIComponent(genre)}`);
                                         }}
-                                        className="px-4 py-1.5 bg-white/5 hover:bg-primary/20 hover:border-primary/50 transition-colors rounded-full text-sm text-white/80 hover:text-white border border-white/10 cursor-pointer"
+                                        className="px-4 py-1.5 bg-muted hover:bg-primary/20 hover:border-primary/50 transition-colors rounded-full text-sm text-foreground/80 hover:text-foreground border border-border cursor-pointer"
                                     >
                                         {genre}
                                     </button>
@@ -353,9 +353,9 @@ export const Details = () => {
                                     const title = encodeURIComponent(item.title || item.name || 'Video');
                                     navigate(`/play/${playPath}?title=${title}`);
                                 }}
-                                className="flex items-center gap-3 bg-white text-black px-10 py-4 rounded-full font-bold hover:bg-neutral-200 transition-all shadow-lg shadow-white/20 hover:scale-105"
+                                className="flex items-center gap-3 bg-foreground text-background px-10 py-4 rounded-full font-bold hover:opacity-90 transition-all shadow-lg active:scale-95"
                             >
-                                <Play className="w-6 h-6 fill-black" />
+                                <Play className="w-6 h-6 fill-current" />
                                 {hasHistory ? 'Resume' : 'Play'}
                             </button>
 
@@ -381,7 +381,7 @@ export const Details = () => {
                                             navigate(`/play/${playPath}?title=${title}`);
                                         }
                                     }}
-                                    className="px-6 py-4 rounded-full font-medium border border-white/20 hover:bg-white/10 transition-colors text-white"
+                                    className="px-6 py-4 rounded-full font-medium border border-border hover:bg-muted transition-colors text-foreground"
                                 >
                                     Start Over
                                 </button>
@@ -401,7 +401,7 @@ export const Details = () => {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ delay: 0.25 }}
-                            className="bg-white/5 rounded-xl p-5 backdrop-blur-sm border border-white/5"
+                            className="bg-card rounded-xl p-5 backdrop-blur-sm border border-border"
                         >
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                                 {item.director && (
@@ -432,8 +432,8 @@ export const Details = () => {
                             {item.production_companies && item.production_companies.length > 0 && (
                                 <div className="mt-4 pt-4 border-t border-white/5 flex flex-wrap gap-20">
                                     <div className="flex flex-col gap-1">
-                                        <div className="flex items-center gap-2 text-neutral-500 text-xs font-medium uppercase tracking-wider">Production</div>
-                                        <div className="text-white text-sm">{item.production_companies.join(', ')}</div>
+                                        <div className="flex items-center gap-2 text-muted-foreground text-xs font-medium uppercase tracking-wider">Production</div>
+                                        <div className="text-foreground text-sm">{item.production_companies.join(', ')}</div>
                                     </div>
                                 </div>
                             )}
@@ -448,8 +448,8 @@ export const Details = () => {
                     transition={{ delay: 0.3 }}
                     className="mt-16 max-w-4xl"
                 >
-                    <h2 className="text-xl font-semibold text-white mb-4">Synopsis</h2>
-                    <p className="text-lg text-neutral-400 leading-relaxed">
+                    <h2 className="text-xl font-semibold text-foreground mb-4">Synopsis</h2>
+                    <p className="text-lg text-muted-foreground leading-relaxed">
                         {item.overview || item.description || item.plot || "No description available."}
                     </p>
                 </motion.div>
@@ -462,7 +462,7 @@ export const Details = () => {
                         transition={{ delay: 0.35 }}
                         className="mt-16"
                     >
-                        <h2 className="text-xl font-semibold text-white mb-6">Cast</h2>
+                        <h2 className="text-xl font-semibold text-foreground mb-6">Cast</h2>
                         <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide">
                             {castDetails.map((actor, idx) => (
                                 <ActorCard key={actor.id || idx} actor={actor} index={idx} />
@@ -479,8 +479,8 @@ export const Details = () => {
                         transition={{ delay: 0.35 }}
                         className="mt-16"
                     >
-                        <h2 className="text-xl font-semibold text-white mb-4">Cast</h2>
-                        <p className="text-neutral-400">{item.cast.join(' • ')}</p>
+                        <h2 className="text-xl font-semibold text-foreground mb-4">Cast</h2>
+                        <p className="text-muted-foreground">{item.cast.join(' • ')}</p>
                     </motion.div>
                 )}
 
@@ -494,12 +494,13 @@ export const Details = () => {
                     >
                         <div className="flex items-center gap-3 mb-6">
                             <Film className="text-primary w-6 h-6" />
-                            <h2 className="text-xl font-semibold text-white">More Like This</h2>
+                            <h2 className="text-xl font-semibold text-foreground">More Like This</h2>
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-4 md:gap-6">
                             {suggestions.map((movie) => (
                                 <MovieCard
                                     key={movie.tmdbId || movie.path}
+                                    item={movie}
                                     title={movie.title}
                                     year={movie.year}
                                     posterPath={movie.poster_path}
