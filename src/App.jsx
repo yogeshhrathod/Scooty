@@ -12,9 +12,19 @@ import { TvShows } from './pages/TvShows';
 import { TvShowDetails } from './pages/TvShowDetails';
 import { Genres } from './pages/Genres';
 import { useStore } from './store/useStore';
+import { PrivacyPolicy } from './pages/PrivacyPolicy';
+import { PrivacyConsent } from './components/PrivacyConsent';
+
+import { useAnalytics } from './hooks/useAnalytics';
 
 function AnimatedRoutes() {
   const location = useLocation();
+  const { trackPageView } = useAnalytics();
+
+  useEffect(() => {
+    trackPageView(location.pathname);
+  }, [location, trackPageView]);
+
   return (
     <Routes location={location} key={location.pathname}>
       <Route path="/" element={<Home />} />
@@ -26,6 +36,7 @@ function AnimatedRoutes() {
       <Route path="/tv/:showId" element={<TvShowDetails />} />
       <Route path="/settings" element={<Settings />} />
       <Route path="/details/:id" element={<Details />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
     </Routes>
   );
 }
@@ -81,6 +92,8 @@ function App() {
     restoreFtpConfigs();
   }, [hasHydrated]);
 
+  const { trackAppError } = useAnalytics();
+
   // Show loading until both hydration AND FTP restoration are complete
   if (!isReady) {
     return (
@@ -94,7 +107,7 @@ function App() {
   }
 
   return (
-    <ErrorBoundary>
+    <ErrorBoundary trackError={trackAppError}>
       <BrowserRouter>
         <Routes>
           {/* Player is standalone (no sidebar) */}
@@ -107,6 +120,7 @@ function App() {
             </Layout>
           } />
         </Routes>
+        <PrivacyConsent />
       </BrowserRouter>
     </ErrorBoundary>
   );

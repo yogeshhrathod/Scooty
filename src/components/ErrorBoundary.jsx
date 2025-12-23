@@ -14,6 +14,11 @@ export class ErrorBoundary extends React.Component {
     componentDidCatch(error, errorInfo) {
         console.error("Uncaught error:", error, errorInfo);
         this.setState({ errorInfo });
+
+        // Track error if prop is available
+        if (this.props.trackError) {
+            this.props.trackError(error, errorInfo?.componentStack);
+        }
     }
 
     handleReload = () => {

@@ -6,6 +6,7 @@ import loadingAnimation from '../assets/loading.lottie?url';
 import { VideoPlayer } from '../components/VideoPlayer';
 import { useStore } from '../store/useStore';
 import { WindowControls } from '../components/WindowControls';
+import { useAnalytics } from '../hooks/useAnalytics'; // Import hook
 
 // Check if we're in Electron environment
 const isElectron = typeof window !== 'undefined' && window.electron;
@@ -15,6 +16,7 @@ export const Player = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
+    const { trackVideoPlay, trackVideoError } = useAnalytics();
 
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -52,6 +54,7 @@ export const Player = () => {
                 // For demo/mock, use a sample HLS stream
                 setStreamUrl('https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8');
                 setIsLoading(false);
+                trackVideoPlay('Mock Video');
                 return;
             }
 
@@ -59,6 +62,7 @@ export const Player = () => {
                 // Fallback for browser testing (non-Electron)
                 setStreamUrl(filePath);
                 setIsLoading(false);
+                trackVideoPlay(title);
                 return;
             }
 
@@ -135,17 +139,19 @@ export const Player = () => {
 
                 console.log('[Player] Stream URL:', url);
                 setStreamUrl(url);
+                trackVideoPlay(title); // Track successful play start
 
             } catch (err) {
                 console.error('[Player] Initialization error:', err);
                 setError(err.message || 'Failed to initialize player');
+                trackVideoError(err.message || 'Failed to initialize player');
             } finally {
                 setIsLoading(false);
             }
         };
 
         initializePlayer();
-    }, [filePath, isMock, historyItem]); // Depend on historyItem to get correct start settings
+    }, [filePath, isMock, historyItem, trackVideoPlay, trackVideoError]); // Depend on historyItem to get correct start settings
 
     // Handle back navigation
     const handleBack = () => {
