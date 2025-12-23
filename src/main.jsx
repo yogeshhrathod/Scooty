@@ -6,7 +6,10 @@ import App from './App.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <AptabaseProvider appKey={import.meta.env.VITE_APTABASE_APP_KEY}>
+    <AptabaseProvider
+      appKey={import.meta.env.VITE_APTABASE_APP_KEY}
+      appVersion={process.env.APP_VERSION || "0.0.0"}
+    >
       <App />
     </AptabaseProvider>
   </StrictMode>,
