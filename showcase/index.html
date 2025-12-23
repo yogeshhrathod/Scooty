@@ -4,25 +4,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCOOTY | UNLEASH YOUR MEDIA</title>
+    <title>SCOOTY | The Ultimate FTP & Cloud Media Player</title>
     <meta name="description"
-        content="One unified interface. Automated sync. Stunning 4K delivery. Scooty turns your digital mess into a personal cinema empire.">
+        content="Scooty is the modern media player for your FTP & Cloud servers. Stream 4K video instantly, enjoy rich metadata, and unify your library in one beautiful interface.">
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://scooty.wesparkvault.com/">
-    <meta property="og:title" content="SCOOTY | UNLEASH YOUR MEDIA">
+    <link rel="canonical" href="https://scooty.wesparkvault.com/">
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Scooty",
+      "operatingSystem": "macOS, Windows",
+      "applicationCategory": "MultimediaApplication",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "description": "The modern media player for your Cloud & FTP Servers. Stream 4K video instantly and unify your library.",
+      "image": "https://scooty.wesparkvault.com/logo.png",
+      "author": {
+        "@type": "Organization",
+        "name": "Scooty Media Group"
+      }
+    }
+    </script>
+    <meta property="og:title" content="SCOOTY | The Ultimate FTP & Cloud Media Player">
     <meta property="og:description"
-        content="One unified interface. Automated sync. Stunning 4K delivery. Scooty turns your digital mess into a personal cinema empire.">
-    <meta property="og:image" content="https://scooty.wesparkvault.com/screenshot2.png">
+        content="Scooty is the modern media player for your FTP & Cloud servers. Stream 4K video instantly, enjoy rich metadata, and unify your library in one beautiful interface.">
+    <meta property="og:image" content="https://scooty.wesparkvault.com/og-image.jpg">
+    <meta property="og:image:type" content="image/jpeg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="645">
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="https://scooty.wesparkvault.com/">
-    <meta property="twitter:title" content="SCOOTY | UNLEASH YOUR MEDIA">
+    <meta property="twitter:title" content="SCOOTY | The Ultimate FTP & Cloud Media Player">
     <meta property="twitter:description"
-        content="One unified interface. Automated sync. Stunning 4K delivery. Scooty turns your digital mess into a personal cinema empire.">
-    <meta property="twitter:image" content="https://scooty.wesparkvault.com/screenshot2.png">
+        content="Scooty is the modern media player for your FTP & Cloud servers. Stream 4K video instantly, enjoy rich metadata, and unify your library in one beautiful interface.">
+    <meta property="twitter:image" content="https://scooty.wesparkvault.com/og-image.jpg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;900&family=Outfit:wght@900&display=swap"
@@ -55,96 +81,98 @@
         </div>
     </nav>
 
-    <header class="hero">
-        <div class="hero-visual">
-            <img src="hero-bg.png" alt="Scooty Hero Background" class="parallax-img">
-            <div class="hero-overlay"></div>
-        </div>
-        <div class="hero-content">
-            <h1 class="hero-title glitch" data-text="SCOOTY">SCOOTY</h1>
-            <p class="hero-subtitle">UNLEASH YOUR MEDIA EMPIRE</p>
-            <a href="#story" class="btn-action">THE MISSION</a>
-        </div>
-    </header>
+    <main>
+        <header class="hero">
+            <div class="hero-visual">
+                <img src="hero-bg.png" alt="Scooty Hero Background" class="parallax-img">
+                <div class="hero-overlay"></div>
+            </div>
+            <div class="hero-content">
+                <h1 class="hero-title glitch" data-text="SCOOTY">SCOOTY</h1>
+                <p class="hero-subtitle">The Modern Media Player for your Cloud & FTP Servers</p>
+                <a href="#story" class="btn-action">SEE FEATURES</a>
+            </div>
+        </header>
 
-    <section id="story" class="story-section">
-        <div class="story-container">
-            <div class="story-step problem">
-                <div class="story-content">
-                    <h2 class="glitch" data-text="THE CHAOS">THE CHAOS</h2>
-                    <p>Scattered Servers. Broken Metadata. Fragmented Libraries. Your media is everywhere, but nowhere
-                        you can actually enjoy it.</p>
+        <section id="story" class="story-section">
+            <div class="story-container">
+                <div class="story-step problem">
+                    <div class="story-content">
+                        <h2 class="glitch" data-text="THE OLD WAY">THE OLD WAY</h2>
+                        <p>Managing media across FTP servers and cloud storage is a pain. No metadata, no progress
+                            tracking,
+                            just raw files.</p>
+                    </div>
+                    <div class="story-visual">
+                        <div class="chaos-grid">
+                            <span>FTP</span>
+                            <span>SFTP</span>
+                            <span>DISK ERROR</span>
+                            <span>NO POSTER</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="story-visual">
-                    <div class="chaos-grid">
-                        <span>FTP</span>
-                        <span>SFTP</span>
-                        <span>DISK ERROR</span>
-                        <span>NO POSTER</span>
+
+                <div class="story-divider">
+                    <div class="line"></div>
+                    <div class="vs">VS</div>
+                    <div class="line"></div>
+                </div>
+
+                <div class="story-step solution">
+                    <div class="story-content">
+                        <h2 class="glitch" data-text="THE SCOOTY WAY">THE SCOOTY WAY</h2>
+                        <p>Scooty connects to your servers, automatically fetches posters & metadata, and creates a
+                            beautiful library instantly.</p>
+                    </div>
+                    <div class="story-visual">
+                        <div class="window-frame">
+                            <img src="screenshot2.png" alt="Scooty Solution">
+                        </div>
                     </div>
                 </div>
             </div>
+        </section>
 
-            <div class="story-divider">
-                <div class="line"></div>
-                <div class="vs">VS</div>
-                <div class="line"></div>
-            </div>
-
-            <div class="story-step solution">
-                <div class="story-content">
-                    <h2 class="glitch" data-text="THE SYSTEM">THE SYSTEM</h2>
-                    <p>One unified interface. Automated sync. Stunning 4K delivery. Scooty turns your digital mess into
-                        a personal cinema empire.</p>
+        <section class="showcase-scroll">
+            <div class="showcase-container">
+                <div class="showcase-visual sticky">
+                    <div class="window-frame showcase-frame" id="showcase-frame">
+                        <img src="screenshot1.png" alt="Showcase 1" id="showcase-img-1" class="showcase-img active">
+                        <img src="screenshot2.png" alt="Showcase 2" id="showcase-img-2" class="showcase-img">
+                        <img src="screenshot3.png" alt="Showcase 3" id="showcase-img-3" class="showcase-img">
+                    </div>
                 </div>
-                <div class="story-visual">
-                    <div class="window-frame">
-                        <img src="screenshot2.png" alt="Scooty Solution">
+                <div class="showcase-content">
+                    <div class="showcase-step" data-target="1">
+                        <h2 class="glitch" data-text="INSTANT STREAMING">INSTANT STREAMING</h2>
+                        <p>Stream directly from FTP, SFTP, and Cloud. No long downloads, just click and play in 4K.</p>
+                    </div>
+                    <div class="showcase-step" data-target="2">
+                        <h2 class="glitch" data-text="RICH METADATA">RICH METADATA</h2>
+                        <p>We automatically fetch plot summaries, cast details, and artwork for your entire collection.
+                        </p>
+                    </div>
+                    <div class="showcase-step" data-target="3">
+                        <h2 class="glitch" data-text="UNIFIED LIBRARY">UNIFIED LIBRARY</h2>
+                        <p>Combine multiple server sources into one seamless, organized entertainment hub.</p>
                     </div>
                 </div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <section class="showcase-scroll">
-        <div class="showcase-container">
-            <div class="showcase-visual sticky">
-                <div class="window-frame showcase-frame" id="showcase-frame">
-                    <img src="screenshot1.png" alt="Showcase 1" id="showcase-img-1" class="showcase-img active">
-                    <img src="screenshot2.png" alt="Showcase 2" id="showcase-img-2" class="showcase-img">
-                    <img src="screenshot3.png" alt="Showcase 3" id="showcase-img-3" class="showcase-img">
-                </div>
+        <section id="download" class="download-section">
+            <h2 class="section-title glitch" data-text="SELECT YOUR OS">SELECT YOUR OS</h2>
+            <div class="download-link">
+                <a href="https://github.com/yogeshhrathod/Scooty/releases/download/untagged-d19de6244ce6ac0ac5a2/Scooty-1.0.1.dmg"
+                    class="dl-btn glitch" data-text="MACOS"
+                    onclick="if(typeof Aptabase !== 'undefined') Aptabase.trackEvent('download', { os: 'macos' })">MACOS</a>
+                <a href="https://github.com/yogeshhrathod/Scooty/releases/download/untagged-d19de6244ce6ac0ac5a2/Scooty-Setup-1.0.1.exe"
+                    class="dl-btn glitch" data-text="WINDOWS"
+                    onclick="if(typeof Aptabase !== 'undefined') Aptabase.trackEvent('download', { os: 'windows' })">WINDOWS</a>
             </div>
-            <div class="showcase-content">
-                <div class="showcase-step" data-target="1">
-                    <h2 class="glitch" data-text="INSTANT PLAY">INSTANT PLAY</h2>
-                    <p>Direct FTP and Cloud streaming. Your media starts in milliseconds, no matter where it's stored.
-                    </p>
-                </div>
-                <div class="showcase-step" data-target="2">
-                    <h2 class="glitch" data-text="ELITE DEPTH">ELITE DEPTH</h2>
-                    <p>Beautiful movie details, cast lists, and watch progress. Every detail refined for the ultimate
-                        fan.</p>
-                </div>
-                <div class="showcase-step" data-target="3">
-                    <h2 class="glitch" data-text="UNIFIED CONTROL">UNIFIED CONTROL</h2>
-                    <p>One home for all your servers. Manage everything from a single, powerful command center.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section id="download" class="download-section">
-        <h2 class="section-title glitch" data-text="SELECT YOUR OS">SELECT YOUR OS</h2>
-        <div class="download-link">
-            <a href="https://github.com/yogeshhrathod/Scooty/releases/download/untagged-d19de6244ce6ac0ac5a2/Scooty-1.0.1.dmg"
-                class="dl-btn glitch" data-text="MACOS"
-                onclick="if(typeof Aptabase !== 'undefined') Aptabase.trackEvent('download', { os: 'macos' })">MACOS</a>
-            <a href="https://github.com/yogeshhrathod/Scooty/releases/download/untagged-d19de6244ce6ac0ac5a2/Scooty-Setup-1.0.1.exe"
-                class="dl-btn glitch" data-text="WINDOWS"
-                onclick="if(typeof Aptabase !== 'undefined') Aptabase.trackEvent('download', { os: 'windows' })">WINDOWS</a>
-        </div>
-    </section>
+        </section>
+    </main>
 
     <footer style="padding: 50px; text-align: center; color: var(--text-dim);">
         <p>&copy; 2025 SCOOTY MEDIA GROUP // BUILT FOR SPEED</p>

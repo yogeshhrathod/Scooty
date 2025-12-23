@@ -296,12 +296,24 @@ h3 {
 /* Navbar */
 .navbar {
     position: fixed;
+    top: 0;
+    left: 0;
     width: 100%;
-    padding: 2rem;
+    padding: 1.2rem 2rem;
     z-index: 100;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background: rgba(5, 5, 5, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.navbar .btn-action {
+    padding: 0.8rem 2rem;
+    font-size: 1rem;
 }
 
 .logo {
@@ -313,7 +325,7 @@ h3 {
 }
 
 .logo-img {
-    width: 48px;
+    width: 40px;
     filter: drop-shadow(0 0 15px var(--primary)) brightness(1.2);
     transition: var(--transition-fast);
 }
