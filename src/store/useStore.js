@@ -1,6 +1,34 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { get, set, del } from 'idb-keyval';
 import { metadataService } from '../services/metadata';
+
+// Custom Storage adapter for IndexedDB
+const storage = {
+    getItem: async (name) => {
+        // Try IndexedDB first
+        const fromIdb = await get(name);
+        if (fromIdb) return fromIdb;
+
+        // Fallback: Check localStorage (Migration)
+        // If data exists in localStorage but not IDB, move it to IDB
+        if (typeof localStorage !== 'undefined') {
+            const fromLocal = localStorage.getItem(name);
+            if (fromLocal) {
+                console.log('[Store] Migrating data from localStorage to IndexedDB');
+                await set(name, fromLocal);
+                return fromLocal;
+            }
+        }
+        return null;
+    },
+    setItem: async (name, value) => {
+        await set(name, value);
+    },
+    removeItem: async (name) => {
+        await del(name);
+    },
+};
 
 export const useStore = create(
     persist(
@@ -207,6 +235,7 @@ export const useStore = create(
         }),
         {
             name: 'infuse-storage',
+            storage: createJSONStorage(() => storage),
         }
     )
 );

@@ -1,4 +1,4 @@
-const { ipcRenderer } = window.require('electron');
+const ipcRenderer = window.electron ? window.electron.ipcRenderer : null;
 
 export const ftpService = {
     async scan(config) {

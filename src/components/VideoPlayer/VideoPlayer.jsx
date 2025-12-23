@@ -5,6 +5,9 @@ import {
     Languages, Gauge, RotateCcw, X, Check, Loader2, ChevronDown
 } from 'lucide-react';
 import './VideoPlayer.css';
+import { PlayerOverlay } from './PlayerOverlay';
+import { PlayerControls } from './PlayerControls';
+import { AudioMenu, SubtitleMenu } from './PlayerMenus';
 
 // Playback speed options
 const SPEED_OPTIONS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -595,258 +598,60 @@ export const VideoPlayer = ({
                 ))}
             </video>
 
-            {/* Loading Overlay */}
-            {isLoading && (
-                <div className="player-overlay loading-overlay">
-                    <Loader2 className="spinner" size={48} />
-                </div>
-            )}
+            <PlayerOverlay
+                isLoading={isLoading}
+                error={error}
+                isPlaying={isPlaying}
+                onRetry={() => {
+                    setError(null);
+                    setIsLoading(true);
+                    if (videoRef.current) {
+                        videoRef.current.load();
+                        videoRef.current.play();
+                    }
+                }}
+            />
 
-            {/* Error Overlay */}
-            {error && (
-                <div className="player-overlay error-overlay">
-                    <div className="error-content">
-                        <p>{error}</p>
-                        <button onClick={() => {
-                            setError(null);
-                            setIsLoading(true);
-                            if (videoRef.current) {
-                                videoRef.current.load();
-                                videoRef.current.play();
-                            }
-                        }}>
-                            <RotateCcw size={20} />
-                            Retry
-                        </button>
-                    </div>
-                </div>
-            )}
+            <PlayerControls
+                show={showControls}
+                title={title}
+                onBack={onBack}
+                isPlaying={isPlaying}
+                onPlayPause={togglePlay}
+                isMuted={isMuted}
+                volume={volume}
+                onMuteToggle={toggleMute}
+                onVolumeChange={changeVolume}
+                currentTime={effectiveCurrentTime}
+                duration={duration}
+                buffered={buffered}
+                onSeek={seekToTime}
+                onSkip={handleSkip}
+                playbackSpeed={playbackSpeed}
+                onSpeedChange={setPlaybackSpeed}
+                isFullscreen={isFullscreen}
+                onFullscreenToggle={toggleFullscreen}
 
-            {/* Play/Pause Center Indicator */}
-            {!isLoading && !error && (
-                <div className={`play-indicator ${isPlaying ? 'playing' : 'paused'}`}>
-                    {isPlaying ? <Pause size={64} /> : <Play size={64} />}
-                </div>
-            )}
+                audioTracks={audioTracks}
+                selectedAudioTrack={selectedAudioTrack}
+                onAudioTrackChange={handleAudioTrackChange}
 
-            {/* Top Bar */}
-            <div className={`player-top-bar ${showControls ? 'visible' : ''}`}>
-                <button className="back-button" onClick={onBack}>
-                    <ChevronLeft size={28} />
-                </button>
-                <h2 className="video-title">{title}</h2>
-            </div>
+                subtitleTracks={subtitleTracks}
+                selectedSubtitleTrack={selectedSubtitleTrack}
+                onSubtitleTrackChange={(idx) => {
+                    setSelectedSubtitleTrack(idx);
+                    if (onSettingsChange) onSettingsChange({ subtitleTrack: idx });
+                }}
 
-            {/* Controls */}
-            <div className={`player-controls ${showControls ? 'visible' : ''}`}>
-                {/* Progress Bar */}
-                <div
-                    ref={progressRef}
-                    className="progress-container"
-                    onClick={handleProgressClick}
-                    onMouseMove={handleProgressHover}
-                    onMouseLeave={() => setPreviewTime(null)}
-                >
-                    <div
-                        className="progress-buffered"
-                        style={{ width: `${Math.min(100, bufferedPercent)}%` }}
-                    />
-                    <div
-                        className="progress-played"
-                        style={{ width: `${Math.min(100, progressPercent)}%` }}
-                    />
-                    <div
-                        className="progress-handle"
-                        style={{ left: `${Math.min(100, progressPercent)}%` }}
-                    />
-                    {previewTime !== null && (
-                        <div
-                            className="preview-tooltip"
-                            style={{ left: `${previewPosition}px` }}
-                        >
-                            {formatTime(previewTime)}
-                        </div>
-                    )}
-                </div>
+                showAudioMenu={showAudioMenu}
+                setShowAudioMenu={setShowAudioMenu}
+                showSubtitleMenu={showSubtitleMenu}
+                setShowSubtitleMenu={setShowSubtitleMenu}
+                showSpeedMenu={showSpeedMenu}
+                setShowSpeedMenu={setShowSpeedMenu}
+                closeAllMenus={closeAllMenus}
+            />
 
-                {/* Controls Row */}
-                <div className="controls-row">
-                    {/* Left Controls */}
-                    <div className="controls-left">
-                        <button className="control-btn" onClick={togglePlay} title={isPlaying ? 'Pause (k)' : 'Play (k)'}>
-                            {isPlaying ? <Pause size={24} /> : <Play size={24} />}
-                        </button>
-
-                        <button className="control-btn" onClick={() => handleSkip(-10)} title="Rewind 10s (←)">
-                            <SkipBack size={20} />
-                        </button>
-
-                        <button className="control-btn" onClick={() => handleSkip(10)} title="Forward 10s (→)">
-                            <SkipForward size={20} />
-                        </button>
-
-                        <div className="volume-control">
-                            <button className="control-btn" onClick={toggleMute} title={isMuted ? 'Unmute (m)' : 'Mute (m)'}>
-                                {isMuted || volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
-                            </button>
-                            <input
-                                type="range"
-                                className="volume-slider"
-                                min="0"
-                                max="1"
-                                step="0.05"
-                                value={isMuted ? 0 : volume}
-                                onChange={handleVolumeChange}
-                            />
-                        </div>
-
-                        <div className="time-display">
-                            <span>{formatTime(effectiveCurrentTime)}</span>
-                            <span className="time-separator">/</span>
-                            <span>{formatTime(duration)}</span>
-                        </div>
-                    </div>
-
-                    {/* Right Controls */}
-                    <div className="controls-right">
-                        {/* Speed indicator */}
-                        {playbackSpeed !== 1 && (
-                            <span className="speed-indicator">{playbackSpeed}x</span>
-                        )}
-
-                        {/* Audio Track Selector */}
-                        {audioTracks.length > 1 && (
-                            <div className="dropdown-wrapper">
-                                <button
-                                    className={`control-btn dropdown-btn ${showAudioMenu ? 'active' : ''}`}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setShowAudioMenu(!showAudioMenu);
-                                        setShowSubtitleMenu(false);
-                                        setShowSpeedMenu(false);
-                                    }}
-                                    title="Audio Track"
-                                >
-                                    <Languages size={20} />
-                                    <span className="dropdown-label">{currentAudioName.split(' ')[0]}</span>
-                                    <ChevronDown size={14} />
-                                </button>
-                                {showAudioMenu && (
-                                    <div className="dropdown-menu">
-                                        <div className="dropdown-header">Audio Track</div>
-                                        {audioTracks.map(track => (
-                                            <button
-                                                key={track.index}
-                                                className={`dropdown-item ${selectedAudioTrack === track.index ? 'active' : ''}`}
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleAudioTrackChange(track.index);
-                                                }}
-                                            >
-                                                <span>{track.displayName || `Track ${track.index}`}</span>
-                                                {selectedAudioTrack === track.index && <Check size={16} />}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {/* Subtitle Selector */}
-                        {subtitleTracks.length > 0 && (
-                            <div className="dropdown-wrapper">
-                                <button
-                                    className={`control-btn dropdown-btn ${showSubtitleMenu ? 'active' : ''} ${selectedSubtitleTrack !== null ? 'has-selection' : ''}`}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setShowSubtitleMenu(!showSubtitleMenu);
-                                        setShowAudioMenu(false);
-                                        setShowSpeedMenu(false);
-                                    }}
-                                    title="Subtitles (c)"
-                                >
-                                    <Subtitles size={20} />
-                                    <span className="dropdown-label">{selectedSubtitleTrack !== null ? 'On' : 'Off'}</span>
-                                    <ChevronDown size={14} />
-                                </button>
-                                {showSubtitleMenu && (
-                                    <div className="dropdown-menu subtitle-menu">
-                                        <div className="dropdown-header">Subtitles</div>
-                                        <button
-                                            className={`dropdown-item ${selectedSubtitleTrack === null ? 'active' : ''}`}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setSelectedSubtitleTrack(null);
-                                                if (onSettingsChange) onSettingsChange({ subtitleTrack: null });
-                                                setShowSubtitleMenu(false);
-                                            }}
-                                        >
-                                            <span>Off</span>
-                                            {selectedSubtitleTrack === null && <Check size={16} />}
-                                        </button>
-                                        {subtitleTracks.map(track => (
-                                            <button
-                                                key={track.index}
-                                                className={`dropdown-item ${selectedSubtitleTrack === track.index ? 'active' : ''}`}
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setSelectedSubtitleTrack(track.index);
-                                                    if (onSettingsChange) onSettingsChange({ subtitleTrack: track.index });
-                                                    setShowSubtitleMenu(false);
-                                                }}
-                                            >
-                                                <span>{track.displayName || `Track ${track.index}`}</span>
-                                                {selectedSubtitleTrack === track.index && <Check size={16} />}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {/* Speed Selector */}
-                        <div className="dropdown-wrapper">
-                            <button
-                                className={`control-btn dropdown-btn ${showSpeedMenu ? 'active' : ''}`}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setShowSpeedMenu(!showSpeedMenu);
-                                    setShowAudioMenu(false);
-                                    setShowSubtitleMenu(false);
-                                }}
-                                title="Playback Speed"
-                            >
-                                <Gauge size={20} />
-                                <span className="dropdown-label">{playbackSpeed === 1 ? '1x' : `${playbackSpeed}x`}</span>
-                            </button>
-                            {showSpeedMenu && (
-                                <div className="dropdown-menu speed-menu">
-                                    <div className="dropdown-header">Speed</div>
-                                    {SPEED_OPTIONS.map(speed => (
-                                        <button
-                                            key={speed}
-                                            className={`dropdown-item ${playbackSpeed === speed ? 'active' : ''}`}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setPlaybackSpeed(speed);
-                                                setShowSpeedMenu(false);
-                                            }}
-                                        >
-                                            <span>{speed === 1 ? 'Normal' : `${speed}x`}</span>
-                                            {playbackSpeed === speed && <Check size={16} />}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Fullscreen */}
-                        <button className="control-btn" onClick={toggleFullscreen} title="Fullscreen (f)">
-                            {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
-                        </button>
-                    </div>
-                </div>
-            </div>
         </div>
     );
 };

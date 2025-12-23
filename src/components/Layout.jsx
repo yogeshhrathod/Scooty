@@ -45,22 +45,22 @@ const TitleBar = () => {
     }, []);
 
     const handleMinimize = () => {
-        if (window.require) {
-            const { ipcRenderer } = window.require('electron');
+        if (window.electron) {
+            const { ipcRenderer } = window.electron;
             ipcRenderer.invoke('window-minimize');
         }
     };
 
     const handleMaximize = () => {
-        if (window.require) {
-            const { ipcRenderer } = window.require('electron');
+        if (window.electron) {
+            const { ipcRenderer } = window.electron;
             ipcRenderer.invoke('window-maximize-toggle');
         }
     };
 
     const handleClose = () => {
-        if (window.require) {
-            const { ipcRenderer } = window.require('electron');
+        if (window.electron) {
+            const { ipcRenderer } = window.electron;
             ipcRenderer.invoke('window-close');
         }
     };
@@ -116,6 +116,9 @@ const TitleBar = () => {
             navigate(`/details/${item.tmdbId || item.id || encodeURIComponent(item.path)}`);
         }
     };
+
+    const isSyncing = useStore(state => state.isSyncing);
+    const syncStatus = useStore(state => state.syncStatus);
 
     return (
         <header
@@ -198,12 +201,11 @@ const TitleBar = () => {
             {/* Right Section: Sync Status & Window Controls */}
             <div className="flex items-center justify-end w-1/4 gap-4">
                 {/* Global Sync Indicator */}
-                {/* We use isSyncing from store to show status */}
-                {useStore(state => state.isSyncing) && (
+                {isSyncing && (
                     <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 border border-primary/20 rounded-full animate-in fade-in slide-in-from-right-4 duration-300">
                         <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />
                         <span className="text-xs font-medium text-primary/90 max-w-[150px] truncate">
-                            {useStore(state => state.syncStatus) || 'Syncing...'}
+                            {syncStatus || 'Syncing...'}
                         </span>
                     </div>
                 )}
@@ -236,7 +238,7 @@ export const Layout = ({ children }) => {
     // Restore FTP config on app startup so playback works without re-syncing
     useEffect(() => {
         const restoreFtpConfig = async () => {
-            if (ftpSources.length > 0 && window.require) {
+            if (ftpSources.length > 0 && window.electron) {
                 const { ftpService } = await import('../services/ftp');
                 // Use the first FTP source as the active config
                 const firstSource = ftpSources[0];

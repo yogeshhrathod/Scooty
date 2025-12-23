@@ -15,9 +15,10 @@ function createWindow() {
         backgroundColor: '#000000',
         icon: path.join(__dirname, 'public/logo.png'), // Set App Icon
         webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false, // For easier local file access in demo
-            webSecurity: false, // Allow local file loading
+            nodeIntegration: false,
+            contextIsolation: true,
+            webSecurity: true,
+            preload: path.join(__dirname, 'electron/preload.js'),
         },
     });
 
@@ -132,27 +133,27 @@ async function scanDir(dir, depth = 0) {
     const indent = '  '.repeat(depth);
 
     try {
-        const list = fs.readdirSync(dir);
+        const list = await fs.promises.readdir(dir, { withFileTypes: true });
         console.log(`${indent}[Scan] Scanning: ${dir} (${list.length} items)`);
 
-        for (const file of list) {
-            // Skip hidden files/folders (optional, remove if you want to include them)
-            if (file.startsWith('.')) continue;
+        for (const dirent of list) {
+            // Skip hidden files/folders
+            if (dirent.name.startsWith('.')) continue;
 
             try {
-                const filePath = path.resolve(dir, file);
-                const stat = fs.statSync(filePath);
+                const filePath = path.resolve(dir, dirent.name);
 
-                if (stat && stat.isDirectory()) {
+                if (dirent.isDirectory()) {
                     // Recursively scan subdirectories
                     const nestedFiles = await scanDir(filePath, depth + 1);
                     results = results.concat(nestedFiles);
-                } else if (stat && stat.isFile()) {
+                } else if (dirent.isFile()) {
                     // Check for video extensions
-                    if (/\.(mkv|mp4|avi|mov|wmv|m4v|webm|flv|m2ts|ts)$/i.test(file)) {
-                        console.log(`${indent}  [Found] ${file}`);
+                    if (/\.(mkv|mp4|avi|mov|wmv|m4v|webm|flv|m2ts|ts)$/i.test(dirent.name)) {
+                        const stat = await fs.promises.stat(filePath);
+                        console.log(`${indent}  [Found] ${dirent.name}`);
                         results.push({
-                            name: file,
+                            name: dirent.name,
                             path: filePath,
                             size: stat.size,
                             type: 'video'
@@ -160,7 +161,7 @@ async function scanDir(dir, depth = 0) {
                     }
                 }
             } catch (fileErr) {
-                console.warn(`${indent}  [Skip] ${file}: ${fileErr.message}`);
+                console.warn(`${indent}  [Skip] ${dirent.name}: ${fileErr.message}`);
             }
         }
     } catch (dirErr) {
@@ -199,8 +200,21 @@ app.on('ready', createWindow);
 
 app.on('window-all-closed', function () {
     if (process.platform !== 'darwin') {
+        // Cleanup before quit
+        try {
+            streamProxy.cleanup();
+            mediaInfoService.cleanupTempFiles();
+        } catch (e) { console.error('Cleanup error:', e); }
         app.quit();
     }
+});
+
+app.on('will-quit', () => {
+    // Ensure cleanup happens on macOS too (Cmd+Q)
+    try {
+        streamProxy.cleanup();
+        mediaInfoService.cleanupTempFiles();
+    } catch (e) { console.error('Cleanup error:', e); }
 });
 
 app.on('activate', function () {

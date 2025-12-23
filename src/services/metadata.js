@@ -4,6 +4,20 @@ import axios from 'axios';
 const API_KEY = import.meta.env.VITE_TMDB_API_KEY || '';
 const BASE_URL = 'https://api.themoviedb.org/3';
 
+// Rate limit/retry helper
+const fetchWithRetry = async (url, retries = 3, delay = 1000) => {
+    try {
+        return await axios.get(url);
+    } catch (err) {
+        if (retries > 0 && err.response && err.response.status === 429) {
+            console.warn(`[Metadata] Rate limited (429). Retrying in ${delay}ms...`);
+            await new Promise(res => setTimeout(res, delay));
+            return fetchWithRetry(url, retries - 1, delay * 2);
+        }
+        throw err;
+    }
+};
+
 export const metadataService = {
     // 1. Clean filename to get a search query
     parseFilename: (filename, filePath = '') => {
@@ -153,7 +167,7 @@ export const metadataService = {
                 if (year) endpoint += `&first_air_date_year=${year}`;
 
                 console.log(`[Metadata] Searching TV: ${endpoint}`);
-                res = await axios.get(endpoint);
+                res = await fetchWithRetry(endpoint);
 
                 if (res.data.results && res.data.results.length > 0) {
                     match = res.data.results[0];
@@ -164,12 +178,12 @@ export const metadataService = {
                     let episodeData = {};
 
                     try {
-                        const detailsRes = await axios.get(`${BASE_URL}/tv/${match.id}?api_key=${API_KEY}&append_to_response=credits,videos,content_ratings,recommendations`);
+                        const detailsRes = await fetchWithRetry(`${BASE_URL}/tv/${match.id}?api_key=${API_KEY}&append_to_response=credits,videos,content_ratings,recommendations`);
                         showDetails = detailsRes.data;
 
                         // Get episode-specific data if available
                         if (season && episode) {
-                            const epReq = await axios.get(`${BASE_URL}/tv/${match.id}/season/${season}/episode/${episode}?api_key=${API_KEY}`);
+                            const epReq = await fetchWithRetry(`${BASE_URL}/tv/${match.id}/season/${season}/episode/${episode}?api_key=${API_KEY}`);
                             episodeData = epReq.data;
                             console.log(`[Metadata] Found Episode: ${episodeData.name}`);
                         }
@@ -232,13 +246,13 @@ export const metadataService = {
                 if (year) endpoint += `&year=${year}`;
 
                 console.log(`[Metadata] Searching Movie: ${endpoint}`);
-                res = await axios.get(endpoint);
+                res = await fetchWithRetry(endpoint);
 
                 // Retry without year if no results (fuzzy search)
                 if ((!res.data.results || res.data.results.length === 0) && year) {
                     console.log('[Metadata] No match with year, retrying without year...');
                     endpoint = `${BASE_URL}/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(title)}`;
-                    res = await axios.get(endpoint);
+                    res = await fetchWithRetry(endpoint);
                 }
 
                 if (res.data.results && res.data.results.length > 0) {
@@ -246,7 +260,7 @@ export const metadataService = {
                     console.log(`[Metadata] Found Movie Match: ${match.title}`);
 
                     // Fetch details with append_to_response
-                    const detailsRes = await axios.get(`${BASE_URL}/movie/${match.id}?api_key=${API_KEY}&append_to_response=credits,videos,release_dates,recommendations`);
+                    const detailsRes = await fetchWithRetry(`${BASE_URL}/movie/${match.id}?api_key=${API_KEY}&append_to_response=credits,videos,release_dates,recommendations`);
                     const details = detailsRes.data;
 
                     // Extract director from crew
@@ -314,7 +328,7 @@ export const metadataService = {
     getRecommendations: async (tmdbId) => {
         if (!API_KEY || !tmdbId) return [];
         try {
-            const res = await axios.get(`${BASE_URL}/movie/${tmdbId}/recommendations?api_key=${API_KEY}`);
+            const res = await fetchWithRetry(`${BASE_URL}/movie/${tmdbId}/recommendations?api_key=${API_KEY}`);
             return res.data.results;
         } catch (e) {
             return [];

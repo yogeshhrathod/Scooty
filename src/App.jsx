@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { Layout } from './components/Layout';
 import { Home } from './pages/Home';
 import { Library } from './pages/Library';
@@ -31,19 +32,21 @@ function AnimatedRoutes() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Player is standalone (no sidebar) */}
-        <Route path="/play/:id" element={<Player />} />
+    <ErrorBoundary>
+      <BrowserRouter>
+        <Routes>
+          {/* Player is standalone (no sidebar) */}
+          <Route path="/play/:id" element={<Player />} />
 
-        {/* Main Layout routes */}
-        <Route path="/*" element={
-          <Layout>
-            <AnimatedRoutes />
-          </Layout>
-        } />
-      </Routes>
-    </BrowserRouter>
+          {/* Main Layout routes */}
+          <Route path="/*" element={
+            <Layout>
+              <AnimatedRoutes />
+            </Layout>
+          } />
+        </Routes>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 

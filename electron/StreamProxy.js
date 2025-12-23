@@ -153,7 +153,11 @@ class StreamProxy {
 
                             // Ensure path starts with / and encode segments
                             const cleanPath = filePath.startsWith('/') ? filePath : '/' + filePath;
-                            const encodedPath = cleanPath.split('/').map(segment => encodeURIComponent(segment)).join('/');
+                            const encodedPath = cleanPath.split('/').map(segment =>
+                                encodeURIComponent(segment)
+                                    .replace(/%5B/g, '[')
+                                    .replace(/%5D/g, ']')
+                            ).join('/');
 
                             const ftpUrl = `ftp://${encodedUser}:${encodedPass}@${host}:${port || 21}${encodedPath}`;
                             console.log('[StreamProxy] Using FFmpeg native FTP input:', ftpUrl.replace(/:[^:@]+@/, ':***@')); // Log masked URL

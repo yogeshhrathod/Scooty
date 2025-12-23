@@ -42,7 +42,12 @@ class MediaInfoService {
                     // Ensure path starts with /
                     const cleanPath = filePath.startsWith('/') ? filePath : '/' + filePath;
                     // Split by / and encode each segment to handle spaces/special chars
-                    const encodedPath = cleanPath.split('/').map(segment => encodeURIComponent(segment)).join('/');
+                    // Split by / and encode each segment, but restore brackets which are common in file naming
+                    const encodedPath = cleanPath.split('/').map(segment =>
+                        encodeURIComponent(segment)
+                            .replace(/%5B/g, '[')
+                            .replace(/%5D/g, ']')
+                    ).join('/');
 
                     probePath = `ftp://${encodedUser}:${encodedPass}@${host}:${port || 21}${encodedPath}`;
                     console.log('[MediaInfo] Probing remote file via FTP');
@@ -163,7 +168,12 @@ class MediaInfoService {
                 // Ensure path starts with /
                 const cleanPath = filePath.startsWith('/') ? filePath : '/' + filePath;
                 // Split by / and encode each segment to handle spaces/special chars
-                const encodedPath = cleanPath.split('/').map(segment => encodeURIComponent(segment)).join('/');
+                // Split by / and encode each segment, but restore brackets
+                const encodedPath = cleanPath.split('/').map(segment =>
+                    encodeURIComponent(segment)
+                        .replace(/%5B/g, '[')
+                        .replace(/%5D/g, ']')
+                ).join('/');
 
                 inputPath = `ftp://${encodedUser}:${encodedPass}@${host}:${port || 21}${encodedPath}`;
                 console.log('[MediaInfo] Extracting subtitle from remote FTP file');
@@ -236,6 +246,23 @@ class MediaInfoService {
         }
 
         return name;
+    }
+    /**
+     * Cleanup all temporary subtitle files
+     */
+    cleanupTempFiles() {
+        const os = require('os');
+        const fs = require('fs');
+        const tempDir = path.join(os.tmpdir(), 'scooty-subs');
+
+        if (fs.existsSync(tempDir)) {
+            try {
+                console.log('[MediaInfo] Cleaning up temp directory:', tempDir);
+                fs.rmSync(tempDir, { recursive: true, force: true });
+            } catch (err) {
+                console.error('[MediaInfo] Failed to cleanup temp dir:', err.message);
+            }
+        }
     }
 }
 

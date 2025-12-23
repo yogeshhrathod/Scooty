@@ -69,7 +69,7 @@ export const Settings = () => {
     const [defLang, setDefLang] = useState('English');
 
     // Check if running in Electron
-    const isElectron = typeof window !== 'undefined' && window.require;
+    const isElectron = typeof window !== 'undefined' && window.electron;
 
     const handleFtpResync = async (id) => {
         setSyncingSourceId(id);
@@ -117,7 +117,7 @@ export const Settings = () => {
             return;
         }
 
-        const { ipcRenderer } = window.require('electron');
+        const { ipcRenderer } = window.electron;
 
         try {
             setIsSyncing(true);
@@ -152,7 +152,7 @@ export const Settings = () => {
 
     const handleAddException = async (type = 'directory') => {
         if (!isElectron) return;
-        const { ipcRenderer } = window.require('electron');
+        const { ipcRenderer } = window.electron;
         try {
             const path = await ipcRenderer.invoke(type === 'file' ? 'open-file' : 'open-directory');
             if (path) {

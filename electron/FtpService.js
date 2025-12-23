@@ -18,7 +18,7 @@ class FtpService {
                 user: config.user,
                 password: config.password,
                 secure: config.secure || false,
-                secureOptions: { rejectUnauthorized: false } // Relaxed security for home servers
+                secureOptions: { rejectUnauthorized: config.rejectUnauthorized !== false } // Default to Secure (true) unless explicitly disabled
             })
             this.isConnected = true
             console.log("FTP Connected")
@@ -145,7 +145,7 @@ class FtpService {
             user: this.config.user,
             password: this.config.password,
             secure: this.config.secure || false,
-            secureOptions: { rejectUnauthorized: false }
+            secureOptions: { rejectUnauthorized: this.config.rejectUnauthorized !== false }
         })
         return streamClient
     }

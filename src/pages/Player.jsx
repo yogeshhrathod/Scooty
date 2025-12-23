@@ -5,8 +5,8 @@ import { VideoPlayer } from '../components/VideoPlayer';
 import { useStore } from '../store/useStore';
 
 // Check if we're in Electron environment
-const isElectron = typeof window !== 'undefined' && window.require;
-const ipcRenderer = isElectron ? window.require('electron').ipcRenderer : null;
+const isElectron = typeof window !== 'undefined' && window.electron;
+const ipcRenderer = isElectron ? window.electron.ipcRenderer : null;
 
 export const Player = () => {
     const { id } = useParams();
@@ -109,18 +109,12 @@ export const Player = () => {
 
                     url = `${baseUrl}/stream?${streamParams.toString()}`;
                 } else {
-                    // Non-MKV files can be played directly via file:// protocol in Electron
-                    // Or through the stream proxy for remote/FTP files
-                    if (filePath.startsWith('/') || filePath.match(/^[A-Z]:\\/i)) {
-                        // Local file - use file:// protocol directly
-                        url = `file://${filePath}`;
-                    } else {
-                        // Remote file - use stream proxy
-                        const streamParams = new URLSearchParams({
-                            file: filePath,
-                        });
-                        url = `${baseUrl}/stream?${streamParams.toString()}`;
-                    }
+                    // Use Stream Proxy for EVERYTHING to bypass secure renderer file:// restrictions
+                    // StreamProxy handles both local files (via fs) and remote (via FTP streaming)
+                    const streamParams = new URLSearchParams({
+                        file: filePath,
+                    });
+                    url = `${baseUrl}/stream?${streamParams.toString()}`;
                 }
 
                 console.log('[Player] Stream URL:', url);

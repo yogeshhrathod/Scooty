@@ -16,6 +16,7 @@ export const AddFtpModal = ({ isOpen, onClose }) => {
         password: '',
         remotePath: '/',
         secure: false,
+        allowSelfSigned: false,
     });
     const [status, setStatus] = useState('idle'); // idle, testing, syncing, success, error
     const [errorMessage, setErrorMessage] = useState('');
@@ -45,7 +46,8 @@ export const AddFtpModal = ({ isOpen, onClose }) => {
                 port: parseInt(formData.port),
                 user: formData.user,
                 password: formData.password,
-                secure: formData.secure
+                secure: formData.secure,
+                rejectUnauthorized: !formData.allowSelfSigned
             });
 
             // Add to store
@@ -55,7 +57,8 @@ export const AddFtpModal = ({ isOpen, onClose }) => {
                 user: formData.user,
                 password: formData.password, // Note: storing plaintext pwd in memory/store. Should be secured in real app.
                 remotePath: formData.remotePath,
-                secure: formData.secure
+                secure: formData.secure,
+                rejectUnauthorized: !formData.allowSelfSigned
             };
             addFtpSource(config);
 
@@ -191,6 +194,38 @@ export const AddFtpModal = ({ isOpen, onClose }) => {
                                         placeholder="/Movies"
                                         className="w-full bg-neutral-100 dark:bg-white/5 border-transparent focus:border-primary focus:ring-0 rounded-xl px-4 py-3 text-neutral-900 dark:text-white transition-all outline-none"
                                     />
+                                </div>
+
+                                <div className="flex flex-col gap-3 pt-2">
+                                    <label className="flex items-center gap-3 p-3 bg-neutral-100 dark:bg-white/5 rounded-xl cursor-pointer hover:bg-neutral-200 dark:hover:bg-white/10 transition">
+                                        <input
+                                            type="checkbox"
+                                            name="secure"
+                                            checked={formData.secure}
+                                            onChange={handleChange}
+                                            className="w-5 h-5 rounded border-neutral-300 text-primary focus:ring-primary"
+                                        />
+                                        <div>
+                                            <div className="text-sm font-bold text-neutral-900 dark:text-white">Use Secure Connection (FTPS)</div>
+                                            <div className="text-xs text-neutral-500">Encrypts the connection (TLS/SSL).</div>
+                                        </div>
+                                    </label>
+
+                                    {formData.secure && (
+                                        <label className="flex items-center gap-3 p-3 bg-orange-500/10 border border-orange-500/20 rounded-xl cursor-pointer hover:bg-orange-500/20 transition">
+                                            <input
+                                                type="checkbox"
+                                                name="allowSelfSigned"
+                                                checked={formData.allowSelfSigned}
+                                                onChange={handleChange}
+                                                className="w-5 h-5 rounded border-orange-500 text-orange-600 focus:ring-orange-500"
+                                            />
+                                            <div>
+                                                <div className="text-sm font-bold text-orange-600 dark:text-orange-400">Allow Self-Signed Certificates</div>
+                                                <div className="text-xs text-orange-600/70 dark:text-orange-400/70">Enable this if you use a home server without a public domain.</div>
+                                            </div>
+                                        </label>
+                                    )}
                                 </div>
 
                                 {/* Status Messages */}
