@@ -153,7 +153,7 @@ const TitleBar = () => {
                                         <button
                                             key={item.id || item.path}
                                             onClick={() => handleResultClick(item)}
-                                            className="w-full flex items-center gap-3 p-2 rounded-md hover:bg-white/10 transition-colors group text-left"
+                                            className="w-full flex items-center gap-3 p-2 rounded-md hover:bg-muted transition-colors group text-left"
                                         >
                                             <div className="w-8 h-12 bg-muted rounded overflow-hidden shrink-0 shadow-sm border border-border">
                                                 {item.poster_path ? (
@@ -165,17 +165,17 @@ const TitleBar = () => {
                                                 )}
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <h4 className="text-sm font-medium text-neutral-200 group-hover:text-white truncate">
+                                                <h4 className="text-sm font-medium text-foreground group-hover:text-primary transition-colors truncate">
                                                     {item.showTitle || item.title || item.name}
                                                 </h4>
-                                                <div className="flex items-center gap-2 text-[10px] text-neutral-500 mt-0.5">
+                                                <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-0.5">
                                                     <span className={`px-1 rounded ${item.type === 'tv' ? 'bg-orange-500/10 text-orange-400' : 'bg-blue-500/10 text-blue-400'}`}>
                                                         {item.type === 'tv' ? 'TV' : 'Movie'}
                                                     </span>
                                                     <span>{item.year || (item.release_date || '').substring(0, 4)}</span>
                                                 </div>
                                             </div>
-                                            <ChevronRight className="w-3 h-3 text-neutral-600 group-hover:text-white transition-colors opacity-0 group-hover:opacity-100" />
+                                            <ChevronRight className="w-3 h-3 text-muted-foreground group-hover:text-primary transition-colors opacity-0 group-hover:opacity-100" />
                                         </button>
                                     ))}
                                 </div>

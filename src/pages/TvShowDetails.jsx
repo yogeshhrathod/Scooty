@@ -97,7 +97,7 @@ export const TvShowDetails = () => {
         } else if (filename.includes('1080p')) {
             badges.push({ label: 'HD', color: 'bg-blue-500/20 text-blue-400' });
         } else if (filename.includes('720p')) {
-            badges.push({ label: '720p', color: 'bg-white/10 text-white/70' });
+            badges.push({ label: '720p', color: 'bg-muted text-muted-foreground' });
         }
 
         if (filename.includes('hdr') || filename.includes('dv') || filename.includes('dolby vision')) {
@@ -409,7 +409,7 @@ export const TvShowDetails = () => {
                                                         className="group flex gap-4 md:gap-6 p-4 rounded-xl bg-muted/30 hover:bg-muted/50 border border-border hover:border-primary/30 transition-all cursor-pointer relative overflow-hidden"
                                                     >
                                                         {/* Thumbnail */}
-                                                        <div className="w-32 md:w-48 aspect-video shrink-0 rounded-lg overflow-hidden bg-neutral-900 relative">
+                                                        <div className="w-32 md:w-48 aspect-video shrink-0 rounded-lg overflow-hidden bg-muted relative">
                                                             {ep.still_path || show.backdrop_path ? (
                                                                 <img
                                                                     src={ep.still_path ? `https://image.tmdb.org/t/p/w300${ep.still_path}` : (show.backdrop_path || show.poster_path)}
@@ -417,20 +417,20 @@ export const TvShowDetails = () => {
                                                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                                                 />
                                                             ) : (
-                                                                <div className="w-full h-full flex items-center justify-center text-neutral-600">
+                                                                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                                                                     <Tv className="w-8 h-8 opacity-20" />
                                                                 </div>
                                                             )}
 
-                                                            <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                                            <div className="absolute inset-0 bg-background/30 group-hover:bg-background/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                                                                 <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-lg transform scale-0 group-hover:scale-100 transition-transform">
-                                                                    <Play className="w-5 h-5 fill-white text-white ml-0.5" />
+                                                                    <Play className="w-5 h-5 fill-primary-foreground text-primary-foreground ml-0.5" />
                                                                 </div>
                                                             </div>
 
                                                             {/* Progress bar */}
                                                             {progress > 0 && (
-                                                                <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
+                                                                <div className="absolute bottom-0 left-0 right-0 h-1 bg-muted">
                                                                     <div
                                                                         className="h-full bg-primary"
                                                                         style={{ width: `${Math.min(100, (progress / (ep.duration || 1)) * 100)}%` }}

@@ -110,7 +110,7 @@ export const Hero = ({ item, className }) => {
                         className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
                     />
                 ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-neutral-800 to-neutral-900" />
+                    <div className="w-full h-full bg-gradient-to-br from-muted to-muted/80" />
                 )}
                 {/* Gradient Overlays */}
                 <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
@@ -137,19 +137,19 @@ export const Hero = ({ item, className }) => {
                             </span>
                         )}
                         {item.year && (
-                            <span className="px-2 py-1 text-xs md:text-sm font-medium text-neutral-400 bg-neutral-800/50 rounded-md backdrop-blur-md">
+                            <span className="px-2 py-1 text-xs md:text-sm font-medium text-muted-foreground bg-muted/50 rounded-md backdrop-blur-md">
                                 {item.year}
                             </span>
                         )}
                     </div>
 
                     {/* Title */}
-                    <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-white mb-3 md:mb-5 leading-tight tracking-tight drop-shadow-xl">
+                    <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-foreground mb-3 md:mb-5 leading-tight tracking-tight drop-shadow-xl">
                         {item.title}
                     </h1>
 
                     {/* Overview */}
-                    <p className="text-sm md:text-lg text-neutral-300 line-clamp-3 md:line-clamp-4 max-w-2xl mb-6 md:mb-8 font-light leading-relaxed drop-shadow-md">
+                    <p className="text-sm md:text-lg text-muted-foreground line-clamp-3 md:line-clamp-4 max-w-2xl mb-6 md:mb-8 font-light leading-relaxed drop-shadow-md">
                         {item.overview || "No description available for this title."}
                     </p>
 
@@ -164,7 +164,7 @@ export const Hero = ({ item, className }) => {
                         </button>
                         <button
                             onClick={handleDetails}
-                            className="flex items-center gap-2 px-6 md:px-8 py-3 md:py-4 bg-white/10 text-white backdrop-blur-md border border-white/20 rounded-xl font-semibold text-sm md:text-base transition-all hover:bg-white/20 hover:scale-105 active:scale-95"
+                            className="flex items-center gap-2 px-6 md:px-8 py-3 md:py-4 bg-muted text-foreground backdrop-blur-md border border-border rounded-xl font-semibold text-sm md:text-base transition-all hover:bg-muted/80 hover:scale-105 active:scale-95"
                         >
                             <Info className="w-5 h-5" />
                             More Info

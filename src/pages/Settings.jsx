@@ -37,6 +37,7 @@ import { cn } from '../lib/utils';
 import { useStore } from '../store/useStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AddFtpModal } from '../components/AddFtpModal';
+import logo from '../assets/logo.png';
 
 export const Settings = () => {
     const library = useStore((state) => state.library);
@@ -163,7 +164,7 @@ export const Settings = () => {
             title: "Library",
             value: "library",
             content: (
-                <div className="w-full relative h-full rounded-2xl p-6 md:p-10 bg-card border border-border shadow-xl overflow-y-auto custom-scrollbar">
+                <div className="w-full relative rounded-2xl p-6 md:p-10 bg-card border border-border shadow-xl overflow-visible">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 md:mb-8 gap-4">
                         <div>
                             <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2 sm:gap-3">
@@ -208,11 +209,11 @@ export const Settings = () => {
                                         isSyncing={syncingSourceId === f.id}
                                     />
                                 ))}
-                                <div className="p-4 border-t border-white/5">
+                                <div className="p-4 border-t border-border">
                                     <button
                                         onClick={handleAddLocalFolder}
                                         disabled={isSyncing}
-                                        className="w-full py-3 border border-dashed border-neutral-300 dark:border-white/10 rounded-xl text-neutral-500 hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all flex items-center justify-center gap-2 font-medium disabled:opacity-50 disabled:pointer-events-none"
+                                        className="w-full py-3 border border-dashed border-border rounded-xl text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all flex items-center justify-center gap-2 font-medium disabled:opacity-50 disabled:pointer-events-none"
                                     >
                                         <Plus className="w-5 h-5" />
                                         {isSyncing ? 'Scanning...' : 'Add Local Folder'}
@@ -220,7 +221,7 @@ export const Settings = () => {
                                     <button
                                         onClick={() => setIsFtpModalOpen(true)}
                                         disabled={isSyncing}
-                                        className="w-full py-3 border border-dashed border-neutral-300 dark:border-white/10 rounded-xl text-neutral-500 hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all flex items-center justify-center gap-2 font-medium disabled:opacity-50 disabled:pointer-events-none"
+                                        className="w-full py-3 border border-dashed border-border rounded-xl text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all flex items-center justify-center gap-2 font-medium disabled:opacity-50 disabled:pointer-events-none"
                                     >
                                         <Globe className="w-5 h-5" />
                                         Add FTP Source
@@ -235,7 +236,7 @@ export const Settings = () => {
                                     </div>
                                 )}
                                 {ignoredPaths.map((path, i) => (
-                                    <div key={i} className="flex items-center justify-between p-4 border-b last:border-0 border-white/5 bg-transparent hover:bg-white/5 transition">
+                                    <div key={i} className="flex items-center justify-between p-4 border-b last:border-0 border-border bg-transparent hover:bg-muted transition">
                                         <div className="flex items-center gap-3 overflow-hidden">
                                             <EyeOff className="w-4 h-4 text-muted-foreground shrink-0" />
                                             <span className="text-foreground text-sm truncate dir-rtl text-left" title={path}>
@@ -247,16 +248,16 @@ export const Settings = () => {
                                         </button>
                                     </div>
                                 ))}
-                                <div className="p-4 border-t border-white/5 grid grid-cols-2 gap-3">
+                                <div className="p-4 border-t border-border grid grid-cols-2 gap-3">
                                     <button
                                         onClick={() => handleAddException('directory')}
-                                        className="py-2 px-3 bg-neutral-100 dark:bg-white/5 text-neutral-600 dark:text-neutral-300 rounded-lg text-xs font-medium hover:bg-white/10 transition flex items-center justify-center gap-2"
+                                        className="py-2 px-3 bg-muted text-muted-foreground rounded-lg text-xs font-medium hover:bg-muted/80 transition flex items-center justify-center gap-2 border border-border"
                                     >
                                         <EyeOff className="w-3 h-3" /> Exclude Folder
                                     </button>
                                     <button
                                         onClick={() => handleAddException('file')}
-                                        className="py-2 px-3 bg-neutral-100 dark:bg-white/5 text-neutral-600 dark:text-neutral-300 rounded-lg text-xs font-medium hover:bg-white/10 transition flex items-center justify-center gap-2"
+                                        className="py-2 px-3 bg-muted text-muted-foreground rounded-lg text-xs font-medium hover:bg-muted/80 transition flex items-center justify-center gap-2 border border-border"
                                     >
                                         <FileMinus className="w-3 h-3" /> Exclude File
                                     </button>
@@ -306,7 +307,7 @@ export const Settings = () => {
             title: "Playback",
             value: "playback",
             content: (
-                <div className="w-full relative h-full rounded-2xl p-6 md:p-10 bg-card border border-border shadow-xl overflow-y-auto">
+                <div className="w-full relative rounded-2xl p-6 md:p-10 bg-card border border-border shadow-xl overflow-visible">
                     <h3 className="text-3xl font-bold text-foreground mb-6 flex items-center gap-3">
                         <PlayCircle className="w-8 h-8 text-primary" /> Playback Experiences
                     </h3>
@@ -361,7 +362,7 @@ export const Settings = () => {
             title: "Appearance",
             value: "appearance",
             content: (
-                <div className="w-full relative h-full rounded-2xl p-6 md:p-10 bg-card border border-border shadow-xl overflow-y-auto">
+                <div className="w-full relative rounded-2xl p-6 md:p-10 bg-card border border-border shadow-xl overflow-visible">
                     <h3 className="text-3xl font-bold text-foreground mb-6 flex items-center gap-3">
                         <Monitor className="w-8 h-8 text-primary" /> UI & Theme
                     </h3>
@@ -380,10 +381,10 @@ export const Settings = () => {
             title: "About",
             value: "about",
             content: (
-                <div className="w-full relative h-full rounded-2xl p-6 md:p-10 bg-white dark:bg-gradient-to-br dark:from-neutral-900 dark:to-neutral-950 border border-neutral-200 dark:border-white/10 shadow-xl overflow-y-auto">
+                <div className="w-full relative rounded-2xl p-6 md:p-10 bg-card border border-border shadow-xl overflow-visible">
                     <div className="flex flex-col items-center text-center py-10">
-                        <div className="w-24 h-24 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl flex items-center justify-center mb-6 shadow-2xl shadow-primary/20">
-                            <img src="/logo.png" alt="Scooty Logo" className="w-16 h-16 object-contain" />
+                        <div className="w-24 h-24 bg-muted border border-border rounded-3xl flex items-center justify-center mb-6 shadow-2xl shadow-primary/20">
+                            <img src={logo} alt="Scooty Logo" className="w-16 h-16 object-contain" />
                         </div>
                         <h1 className="text-4xl font-bold text-foreground mb-2">Scooty Player</h1>
                         <p className="text-muted-foreground text-lg mb-8">The Ultimate Media Experience</p>
@@ -395,7 +396,7 @@ export const Settings = () => {
                             </div>
                             <div className="bg-muted p-4 rounded-xl border border-border">
                                 <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Build</div>
-                                <div className="text-foreground font-mono">241214.X</div>
+                                <div className="text-foreground font-mono">250101.A</div>
                             </div>
                         </div>
 
@@ -420,7 +421,7 @@ export const Settings = () => {
     return (
         <div className="min-h-screen pb-20 relative flex flex-col w-full items-start justify-start px-2 sm:px-4">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-6 md:mb-8 tracking-tight">Settings</h2>
-            <Tabs tabs={tabs} containerClassName="mb-10 w-full" contentClassName="h-[40rem] md:h-[50rem]" />
+            <Tabs tabs={tabs} containerClassName="mb-10 w-full" contentClassName="min-h-[40rem]" />
             <AddFtpModal isOpen={isFtpModalOpen} onClose={() => setIsFtpModalOpen(false)} />
         </div>
     );

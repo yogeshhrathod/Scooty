@@ -4,6 +4,7 @@ import { useStore } from '../store/useStore';
 import { Play, ArrowLeft, Clock, Calendar, Star, User, Film, Clapperboard, Info, EyeOff, Youtube, DollarSign, Activity, PenTool } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { MovieCard } from '../components/MovieCard';
+import { cn } from '../lib/utils';
 
 // Quality Badge Component
 const QualityBadge = ({ label, color = "bg-muted" }) => (

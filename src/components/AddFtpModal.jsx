@@ -100,7 +100,7 @@ export const AddFtpModal = ({ isOpen, onClose }) => {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onClose}
-                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-start justify-center p-0 md:p-8 overflow-y-auto custom-scrollbar"
                     >
                         {/* Modal */}
                         <motion.div
@@ -108,7 +108,7 @@ export const AddFtpModal = ({ isOpen, onClose }) => {
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0, y: 20 }}
                             onClick={(e) => e.stopPropagation()}
-                            className="bg-card border border-border w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden"
+                            className="bg-card border border-border w-full max-w-lg md:rounded-2xl shadow-2xl overflow-hidden my-auto"
                         >
                             {/* Header */}
                             <div className="p-6 border-b border-neutral-200 dark:border-white/10 flex items-center justify-between">
