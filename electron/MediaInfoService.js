@@ -162,15 +162,15 @@ class MediaInfoService {
         let inputPath = filePath;
         if (!fs.existsSync(filePath)) {
             // If not local, check if we have FTP credentials
-            if (ftpService.config) {
-                const { user, password, host, port } = ftpService.config;
+            const allConfigs = ftpService.getAllConfigs();
+            if (allConfigs.length > 0) {
+                const { user, password, host, port } = allConfigs[0];
                 const encodedUser = encodeURIComponent(user);
                 const encodedPass = encodeURIComponent(password);
 
                 // Ensure path starts with /
                 const cleanPath = filePath.startsWith('/') ? filePath : '/' + filePath;
                 // Split by / and encode each segment to handle spaces/special chars
-                // Split by / and encode each segment, but restore brackets
                 const encodedPath = cleanPath.split('/').map(segment =>
                     encodeURIComponent(segment)
                         .replace(/%5B/g, '[')

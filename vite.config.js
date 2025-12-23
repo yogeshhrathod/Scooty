@@ -6,6 +6,7 @@ import path from 'path'
 export default defineConfig({
   plugins: [react()],
   base: './', // Crucial for Electron/Capacitor (file:// protocol)
+  assetsInclude: ['**/*.lottie'],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

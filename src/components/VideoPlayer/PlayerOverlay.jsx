@@ -1,5 +1,7 @@
 import React from 'react';
-import { Loader2, Play, Pause, RotateCcw } from 'lucide-react';
+import { Play, Pause, RotateCcw } from 'lucide-react';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+import loadingAnimation from '../../assets/loading.lottie?url';
 
 export const PlayerOverlay = ({ isLoading, error, isPlaying, onRetry }) => {
     return (
@@ -7,7 +9,12 @@ export const PlayerOverlay = ({ isLoading, error, isPlaying, onRetry }) => {
             {/* Loading Overlay */}
             {isLoading && (
                 <div className="player-overlay loading-overlay">
-                    <Loader2 className="spinner" size={48} />
+                    <DotLottieReact
+                        src={loadingAnimation}
+                        loop
+                        autoplay
+                        style={{ width: 300, height: 300 }}
+                    />
                 </div>
             )}
 

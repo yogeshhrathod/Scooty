@@ -45,6 +45,23 @@ class FtpService {
         return Array.from(this.configs.values())
     }
 
+    /**
+     * Get a config by sourceId (matches the frontend store's id)
+     * @param {string} sourceId - The source ID from the frontend
+     * @returns {Object|null} The matching config or null
+     */
+    getConfigById(sourceId) {
+        if (!sourceId) return null
+
+        // Search through configs for matching id
+        for (const config of this.configs.values()) {
+            if (config.id === sourceId) {
+                return config
+            }
+        }
+        return null
+    }
+
     async connect(config) {
         this.addConfig(config) // Store it in the map
         try {
@@ -125,18 +142,35 @@ class FtpService {
 
     /**
      * Create a dedicated FTP client for streaming
-     * Uses the first available config or a specific host if provided
+     * Supports lookup by sourceId, host, or falls back to first available config
+     * @param {Object} options - Options for client creation
+     * @param {string} options.host - Hostname to look up config
+     * @param {string} options.sourceId - Source ID to look up config
      */
-    async createStreamClient(host = null) {
+    async createStreamClient({ host = null, sourceId = null } = {}) {
         let config;
 
-        if (host) {
+        // Priority: sourceId -> host -> first available
+        if (sourceId) {
+            config = this.getConfigById(sourceId);
+            if (config) {
+                console.log(`[FtpService] Creating stream client for sourceId: ${sourceId} -> ${config.host}`);
+            }
+        }
+
+        if (!config && host) {
             config = this.configs.get(host);
+            if (config) {
+                console.log(`[FtpService] Creating stream client for host: ${host}`);
+            }
         }
 
         if (!config) {
             // Fallback to first available config
             config = this.config;
+            if (config) {
+                console.log(`[FtpService] Creating stream client using fallback config: ${config.host}`);
+            }
         }
 
         if (!config) {

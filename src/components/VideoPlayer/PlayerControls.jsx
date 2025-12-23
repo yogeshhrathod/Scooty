@@ -46,6 +46,11 @@ export const PlayerControls = ({
     subtitleTracks,
     selectedSubtitleTrack,
     onSubtitleTrackChange,
+    // External subtitles
+    externalSubtitles = [],
+    selectedExternalSubtitle,
+    onSelectExternalSubtitle,
+    onAddExternalSubtitle,
     // Menu States
     showAudioMenu,
     setShowAudioMenu,
@@ -233,6 +238,16 @@ export const PlayerControls = ({
                                 onSubtitleTrackChange(idx);
                                 setShowSubtitleMenu(false);
                             }}
+                            externalSubtitles={externalSubtitles}
+                            selectedExternalSubtitle={selectedExternalSubtitle}
+                            onSelectExternal={(idx) => {
+                                if (onSelectExternalSubtitle) onSelectExternalSubtitle(idx);
+                                setShowSubtitleMenu(false);
+                            }}
+                            onAddExternal={onAddExternalSubtitle ? () => {
+                                onAddExternalSubtitle();
+                                setShowSubtitleMenu(false);
+                            } : undefined}
                         />
 
                         {/* Fullscreen */}

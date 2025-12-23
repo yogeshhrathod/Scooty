@@ -23,6 +23,7 @@ class StreamProxy {
         this.server = null;
         this.port = null;
         this.subtitleCache = new Map(); // Cache extracted subtitles
+        this.activeCommands = new Set(); // Track active FFmpeg commands for cleanup
 
         this.app.use(cors());
         this.app.use(express.json());
@@ -56,6 +57,277 @@ class StreamProxy {
             } catch (err) {
                 console.error('[StreamProxy] Media info error:', err.message);
                 res.status(500).json({ error: err.message });
+            }
+        });
+
+        // =====================================
+        // GET /subtitles/search - Search for subtitles using OpenSubtitles REST API
+        // Uses the legacy REST API which doesn't require authentication
+        // =====================================
+        this.app.get('/subtitles/search', async (req, res) => {
+            const { query, imdb_id, languages = 'eng', season, episode } = req.query;
+
+            if (!query && !imdb_id) {
+                return res.status(400).json({ error: 'Missing search query or imdb_id' });
+            }
+
+            try {
+                const fetch = (await import('node-fetch')).default;
+
+                // Build search URL for legacy REST API
+                // Format: https://rest.opensubtitles.org/search/{params}
+                let searchPath = '';
+
+                if (imdb_id) {
+                    // Search by IMDB ID (remove 'tt' prefix if present)
+                    const imdbNum = imdb_id.replace(/^tt/, '');
+                    searchPath = `imdbid-${imdbNum}`;
+                } else {
+                    // Search by query
+                    searchPath = `query-${encodeURIComponent(query.toLowerCase().replace(/\s+/g, ' '))}`;
+                }
+
+                // Add language filter (skip if 'all' is selected)
+                if (languages && languages !== 'all') {
+                    searchPath += `/sublanguageid-${languages}`;
+                }
+
+                // Add season/episode for TV shows
+                if (season) searchPath += `/season-${season}`;
+                if (episode) searchPath += `/episode-${episode}`;
+
+                const searchUrl = `https://rest.opensubtitles.org/search/${searchPath}`;
+                console.log('[StreamProxy] Searching subtitles:', searchUrl);
+
+                const response = await fetch(searchUrl, {
+                    method: 'GET',
+                    headers: {
+                        'User-Agent': 'Scooty v1.0',
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('[StreamProxy] OpenSubtitles search error:', response.status, errorText);
+                    throw new Error(`OpenSubtitles API error: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Transform results for frontend (legacy API format)
+                const results = (Array.isArray(data) ? data : []).slice(0, 50).map(item => ({
+                    id: item.IDSubtitle,
+                    file_id: item.IDSubtitleFile,
+                    language: item.ISO639,
+                    language_name: item.LanguageName,
+                    release: item.MovieReleaseName || item.SubFileName,
+                    download_count: parseInt(item.SubDownloadsCnt) || 0,
+                    ratings: parseFloat(item.SubRating) || 0,
+                    uploader: item.UserNickName || '',
+                    feature: item.MovieName,
+                    year: item.MovieYear,
+                    hearing_impaired: item.SubHearingImpaired === '1',
+                    format: item.SubFormat,
+                    download_url: item.SubDownloadLink,
+                    zip_url: item.ZipDownloadLink,
+                    from_trusted: item.SubFromTrusted === '1',
+                    movie_kind: item.MovieKind,
+                    encoding: item.SubEncoding
+                }));
+
+                console.log(`[StreamProxy] Found ${results.length} subtitles`);
+                res.json({ results, total: results.length });
+            } catch (err) {
+                console.error('[StreamProxy] Subtitle search error:', err.message);
+                res.status(500).json({ error: err.message });
+            }
+        });
+
+        // =====================================
+        // GET /subtitles/download - Download subtitle from OpenSubtitles
+        // Uses zip download URL which works without authentication
+        // =====================================
+        this.app.get('/subtitles/download', async (req, res) => {
+            const { zip_url, subtitle_id, download_url, file_id } = req.query;
+            const startTime = parseFloat(req.query.start || 0);
+
+            if (!zip_url && !subtitle_id && !download_url && !file_id) {
+                return res.status(400).json({ error: 'Missing zip_url, subtitle_id, download_url, or file_id' });
+            }
+
+            try {
+                const fetch = (await import('node-fetch')).default;
+                const AdmZip = require('adm-zip');
+                const zlib = require('zlib');
+
+                // Construct URL - prefer zip_url, then subtitle_id, then gzipped file_id
+                let subtitleUrl;
+                let isZipFile = false;
+
+                if (zip_url) {
+                    subtitleUrl = zip_url;
+                    isZipFile = true;
+                } else if (subtitle_id) {
+                    subtitleUrl = `https://dl.opensubtitles.org/en/download/sub/${subtitle_id}`;
+                    isZipFile = true;
+                } else if (download_url) {
+                    subtitleUrl = download_url;
+                } else {
+                    subtitleUrl = `https://dl.opensubtitles.org/en/download/filead/${file_id}`;
+                }
+
+                console.log('[StreamProxy] Downloading subtitle from:', subtitleUrl);
+
+                // Fetch the subtitle file
+                const subtitleResponse = await fetch(subtitleUrl, {
+                    headers: {
+                        'User-Agent': 'Scooty v1.0',
+                        'Accept': '*/*'
+                    }
+                });
+
+                if (!subtitleResponse.ok) {
+                    throw new Error(`Failed to download subtitle: ${subtitleResponse.status}`);
+                }
+
+                // Get the buffer
+                const buffer = await subtitleResponse.buffer();
+                let content;
+
+                if (isZipFile) {
+                    // Extract from ZIP
+                    try {
+                        const zip = new AdmZip(buffer);
+                        const entries = zip.getEntries();
+
+                        // Find the first subtitle file
+                        const subtitleEntry = entries.find(entry =>
+                            !entry.isDirectory &&
+                            /\.(srt|vtt|ass|ssa|sub)$/i.test(entry.name)
+                        );
+
+                        if (!subtitleEntry) {
+                            throw new Error('No subtitle file found in ZIP');
+                        }
+
+                        content = subtitleEntry.getData().toString('utf-8');
+                        console.log('[StreamProxy] Extracted', subtitleEntry.name, 'from ZIP, length:', content.length);
+                    } catch (zipErr) {
+                        console.error('[StreamProxy] ZIP extraction error:', zipErr.message);
+                        // Maybe it's gzipped instead?
+                        try {
+                            const decompressed = zlib.gunzipSync(buffer);
+                            content = decompressed.toString('utf-8');
+                        } catch (e) {
+                            content = buffer.toString('utf-8');
+                        }
+                    }
+                } else {
+                    // Try gzip decompression
+                    try {
+                        const decompressed = zlib.gunzipSync(buffer);
+                        content = decompressed.toString('utf-8');
+                    } catch (e) {
+                        content = buffer.toString('utf-8');
+                    }
+                }
+
+                console.log('[StreamProxy] Downloaded subtitle, length:', content.length);
+
+                // Convert to VTT format
+                content = this.convertToVtt(content);
+
+                // Adjust timestamps if seeking
+                if (startTime > 0) {
+                    content = this.adjustSubtitleTimestamps(content, startTime);
+                }
+
+                res.setHeader('Content-Type', 'text/vtt');
+                res.setHeader('Access-Control-Allow-Origin', '*');
+                res.send(content);
+            } catch (err) {
+                console.error('[StreamProxy] Subtitle download error:', err.message);
+                res.status(500).json({ error: err.message });
+            }
+        });
+
+        // =====================================
+        // GET /external-subtitle - Fetch and serve external subtitle from URL
+        // Supports SRT, VTT, ASS/SSA formats and converts to VTT
+        // =====================================
+        this.app.get('/external-subtitle', async (req, res) => {
+            const subtitleUrl = req.query.url;
+            const startTime = parseFloat(req.query.start || 0);
+
+            if (!subtitleUrl) {
+                return res.status(400).send('Missing subtitle URL parameter');
+            }
+
+            try {
+                console.log('[StreamProxy] Fetching external subtitle from:', subtitleUrl);
+
+                // Fetch the subtitle content
+                const fetch = (await import('node-fetch')).default;
+                const response = await fetch(subtitleUrl, {
+                    headers: {
+                        'User-Agent': 'Scooty/1.0'
+                    },
+                    timeout: 30000
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch subtitle: ${response.status} ${response.statusText}`);
+                }
+
+                let content = await response.text();
+                console.log('[StreamProxy] Fetched subtitle, length:', content.length);
+
+                // Detect and convert format
+                content = this.convertToVtt(content);
+
+                // Adjust timestamps if seeking
+                if (startTime > 0) {
+                    content = this.adjustSubtitleTimestamps(content, startTime);
+                }
+
+                res.setHeader('Content-Type', 'text/vtt');
+                res.setHeader('Access-Control-Allow-Origin', '*');
+                res.send(content);
+            } catch (err) {
+                console.error('[StreamProxy] External subtitle fetch error:', err.message);
+                res.status(500).send('External subtitle fetch failed: ' + err.message);
+            }
+        });
+
+        // =====================================
+        // POST /parse-subtitle - Parse uploaded/pasted subtitle content
+        // =====================================
+        this.app.post('/parse-subtitle', express.text({ limit: '10mb', type: '*/*' }), async (req, res) => {
+            const startTime = parseFloat(req.query.start || 0);
+            let content = req.body;
+
+            if (!content) {
+                return res.status(400).send('Missing subtitle content');
+            }
+
+            try {
+                console.log('[StreamProxy] Parsing pasted subtitle, length:', content.length);
+
+                // Convert to VTT format
+                content = this.convertToVtt(content);
+
+                // Adjust timestamps if seeking
+                if (startTime > 0) {
+                    content = this.adjustSubtitleTimestamps(content, startTime);
+                }
+
+                res.setHeader('Content-Type', 'text/vtt');
+                res.setHeader('Access-Control-Allow-Origin', '*');
+                res.send(content);
+            } catch (err) {
+                console.error('[StreamProxy] Subtitle parse error:', err.message);
+                res.status(500).send('Subtitle parse failed: ' + err.message);
             }
         });
 
@@ -106,12 +378,13 @@ class StreamProxy {
             const filePath = req.query.file;
             const startTime = parseFloat(req.query.start || 0);
             const audioTrack = parseInt(req.query.audio, 10); // Optional: specific audio track
+            const sourceId = req.query.sourceId; // FTP source identifier for multi-source support
 
             if (!filePath) {
                 return res.status(400).send("Missing file path");
             }
 
-            console.log(`[StreamProxy] Requesting: ${filePath}, Start: ${startTime}, Audio: ${audioTrack}`);
+            console.log(`[StreamProxy] Requesting: ${filePath}, Start: ${startTime}, Audio: ${audioTrack}, SourceId: ${sourceId || 'none'}`);
 
             // Detect Type
             const mimeType = textMime.lookup(filePath) || 'video/mp4';
@@ -159,8 +432,23 @@ class StreamProxy {
                             return;
                         }
 
-                        // Use the first config (TODO: pass sourceId from frontend for multi-source accuracy)
-                        const activeConfig = allConfigs[0];
+                        // Use sourceId to find the correct config, fallback to first config
+                        let activeConfig = null;
+                        if (sourceId) {
+                            activeConfig = ftpService.getConfigById(sourceId);
+                            if (activeConfig) {
+                                console.log(`[StreamProxy] Using FTP config by sourceId: ${sourceId} -> ${activeConfig.host}`);
+                            } else {
+                                console.warn(`[StreamProxy] sourceId ${sourceId} not found, falling back to first config`);
+                            }
+                        }
+
+                        // Fallback to first config if sourceId not provided or not found
+                        if (!activeConfig) {
+                            activeConfig = allConfigs[0];
+                            console.log(`[StreamProxy] Using fallback FTP config: ${activeConfig.host}`);
+                        }
+
                         const { user, password, host, port } = activeConfig;
 
                         const encodedUser = encodeURIComponent(user);
@@ -258,6 +546,7 @@ class StreamProxy {
                         .format('mp4')
                         .on('start', (cmd) => {
                             console.log('[StreamProxy] FFmpeg command:', cmd);
+                            this.trackCommand(command);
                         })
                         .on('stderr', (stderrLine) => {
                             if (stderrLine.includes('frame=') || stderrLine.includes('speed=')) {
@@ -265,8 +554,9 @@ class StreamProxy {
                             }
                         })
                         .on('error', (err) => {
-                            if (err.message.includes('SIGKILL')) return;
+                            if (err.message.includes('SIGKILL') || err.message.includes('SIGTERM')) return;
                             console.error('[StreamProxy] FFmpeg Error:', err.message);
+                            this.activeCommands.delete(command);
                             if (!res.headersSent) {
                                 res.status(500).send("Transcoding Error: " + err.message);
                             } else {
@@ -275,13 +565,14 @@ class StreamProxy {
                         })
                         .on('end', () => {
                             console.log('[StreamProxy] Transcoding finished');
+                            this.activeCommands.delete(command);
                         })
                         .pipe(res, { end: true });
 
-                    // Handle client disconnect
+                    // Handle client disconnect - graceful SIGTERM first, then SIGKILL
                     req.on('close', () => {
-                        console.log('[StreamProxy] Client disconnected, killing ffmpeg.');
-                        command.kill('SIGKILL');
+                        console.log('[StreamProxy] Client disconnected, stopping ffmpeg gracefully...');
+                        this.killCommand(command);
                     });
 
                     return;
@@ -301,7 +592,7 @@ class StreamProxy {
                     });
                 }
 
-                client = await ftpService.createStreamClient();
+                client = await ftpService.createStreamClient({ sourceId });
                 const size = await client.size(filePath);
 
                 const range = req.headers.range;
@@ -371,6 +662,7 @@ class StreamProxy {
                     'Accept-Ranges': 'bytes',
                     'Content-Length': chunksize,
                     'Content-Type': mimeType,
+                    'Access-Control-Allow-Origin': '*',
                 };
 
                 res.writeHead(206, head);
@@ -380,6 +672,7 @@ class StreamProxy {
                     'Content-Length': fileSize,
                     'Content-Type': mimeType,
                     'Accept-Ranges': 'bytes',
+                    'Access-Control-Allow-Origin': '*',
                 };
                 res.writeHead(200, head);
                 fs.createReadStream(filePath).pipe(res);
@@ -405,6 +698,110 @@ class StreamProxy {
 
     getPort() {
         return this.port;
+    }
+
+    /**
+     * Convert various subtitle formats (SRT, ASS/SSA) to WebVTT
+     */
+    convertToVtt(content) {
+        // Remove BOM if present
+        content = content.replace(/^\uFEFF/, '');
+
+        // Detect format
+        const trimmedContent = content.trim();
+
+        // Check if already VTT
+        if (trimmedContent.startsWith('WEBVTT')) {
+            return content;
+        }
+
+        // Check if ASS/SSA format
+        if (trimmedContent.includes('[Script Info]') || trimmedContent.includes('Dialogue:')) {
+            return this.convertAssToVtt(content);
+        }
+
+        // Assume SRT format
+        return this.convertSrtToVtt(content);
+    }
+
+    /**
+     * Convert SRT subtitle format to WebVTT
+     */
+    convertSrtToVtt(srtContent) {
+        let vtt = 'WEBVTT\n\n';
+
+        // Split by double newlines (subtitle blocks)
+        const blocks = srtContent.split(/\r?\n\r?\n/);
+
+        for (const block of blocks) {
+            const lines = block.trim().split(/\r?\n/);
+            if (lines.length < 2) continue;
+
+            // Find the timing line (contains -->)
+            let timingLineIndex = lines.findIndex(line => line.includes('-->'));
+            if (timingLineIndex === -1) continue;
+
+            // Convert timing format: 00:00:00,000 --> 00:00:00,000 to VTT format
+            let timing = lines[timingLineIndex];
+            // Replace comma with dot for milliseconds
+            timing = timing.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2');
+
+            // Get subtitle text (everything after timing line)
+            const text = lines.slice(timingLineIndex + 1).join('\n');
+
+            if (text) {
+                vtt += `${timing}\n${text}\n\n`;
+            }
+        }
+
+        return vtt;
+    }
+
+    /**
+     * Convert ASS/SSA subtitle format to WebVTT
+     */
+    convertAssToVtt(assContent) {
+        let vtt = 'WEBVTT\n\n';
+
+        // Extract dialogue lines
+        const lines = assContent.split(/\r?\n/);
+
+        for (const line of lines) {
+            if (!line.startsWith('Dialogue:')) continue;
+
+            // Format: Dialogue: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text
+            const match = line.match(/Dialogue:\s*\d+,([^,]+),([^,]+),[^,]*,[^,]*,[^,]*,[^,]*,[^,]*,[^,]*,(.+)/);
+            if (!match) continue;
+
+            const [, start, end, text] = match;
+
+            // Convert ASS time format (H:MM:SS.cc) to VTT (HH:MM:SS.mmm)
+            const convertTime = (assTime) => {
+                const parts = assTime.split(':');
+                if (parts.length !== 3) return assTime;
+
+                const h = parts[0].padStart(2, '0');
+                const m = parts[1].padStart(2, '0');
+                const s = parts[2].replace('.', ':').split(':');
+                const sec = s[0].padStart(2, '0');
+                const ms = ((parseInt(s[1] || '0') / 100) * 1000).toFixed(0).padStart(3, '0');
+
+                return `${h}:${m}:${sec}.${ms}`;
+            };
+
+            // Clean up ASS formatting codes
+            let cleanText = text
+                .replace(/\\N/g, '\n')  // Line breaks
+                .replace(/\\n/g, '\n')
+                .replace(/\{[^}]*\}/g, '')  // Remove style tags like {\an8}
+                .trim();
+
+            if (cleanText) {
+                vtt += `${convertTime(start)} --> ${convertTime(end)}\n${cleanText}\n\n`;
+            }
+        }
+
+        return vtt;
     }
 
     /**
@@ -447,9 +844,52 @@ class StreamProxy {
     }
 
     /**
-     * Clean up cached subtitle files
+     * Kill an FFmpeg command gracefully
+     * Tries SIGTERM first, then SIGKILL after timeout
+     */
+    killCommand(command) {
+        if (!command) return;
+
+        this.activeCommands.delete(command);
+
+        try {
+            // Try graceful termination first
+            command.kill('SIGTERM');
+
+            // Force kill after 2 seconds if still running
+            setTimeout(() => {
+                try {
+                    command.kill('SIGKILL');
+                } catch (e) {
+                    // Already terminated, ignore
+                }
+            }, 2000);
+        } catch (e) {
+            // Process already terminated
+            console.log('[StreamProxy] FFmpeg process already terminated');
+        }
+    }
+
+    /**
+     * Track an active FFmpeg command
+     */
+    trackCommand(command) {
+        this.activeCommands.add(command);
+    }
+
+    /**
+     * Clean up cached subtitle files and active FFmpeg processes
      */
     cleanup() {
+        console.log(`[StreamProxy] Cleanup: ${this.subtitleCache.size} subtitles, ${this.activeCommands.size} active commands`);
+
+        // Kill all active FFmpeg commands
+        for (const command of this.activeCommands) {
+            this.killCommand(command);
+        }
+        this.activeCommands.clear();
+
+        // Clean up subtitle cache
         for (const [key, vttPath] of this.subtitleCache) {
             try {
                 if (fs.existsSync(vttPath)) {

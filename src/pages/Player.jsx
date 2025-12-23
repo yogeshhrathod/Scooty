@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Loader2, ChevronLeft } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+import loadingAnimation from '../assets/loading.lottie?url';
 import { VideoPlayer } from '../components/VideoPlayer';
 import { useStore } from '../store/useStore';
 
@@ -31,8 +33,12 @@ export const Player = () => {
     // Store integration - Split selectors to avoid infinite loop
     const updateHistory = useStore(state => state.updateHistory);
     const history = useStore(state => state.history);
+    const library = useStore(state => state.library);
 
     const historyItem = history[filePath];
+
+    // Find the library item to get sourceId for FTP
+    const libraryItem = library.find(item => item.path === filePath);
 
     // Initialize player (runs once)
     useEffect(() => {
@@ -97,6 +103,11 @@ export const Player = () => {
                         file: filePath,
                     });
 
+                    // Pass sourceId for multi-FTP source support
+                    if (libraryItem?.sourceId) {
+                        streamParams.append('sourceId', libraryItem.sourceId);
+                    }
+
                     // Use the default audio track we just found
                     if (defaultAudioTrackIndex !== null && defaultAudioTrackIndex !== undefined) {
                         streamParams.append('audio', defaultAudioTrackIndex);
@@ -114,6 +125,10 @@ export const Player = () => {
                     const streamParams = new URLSearchParams({
                         file: filePath,
                     });
+                    // Pass sourceId for multi-FTP source support
+                    if (libraryItem?.sourceId) {
+                        streamParams.append('sourceId', libraryItem.sourceId);
+                    }
                     url = `${baseUrl}/stream?${streamParams.toString()}`;
                 }
 
@@ -161,7 +176,12 @@ export const Player = () => {
                     <ChevronLeft size={28} />
                 </button>
                 <div className="flex flex-col items-center gap-4">
-                    <Loader2 className="w-12 h-12 text-orange-500 animate-spin" />
+                    <DotLottieReact
+                        src={loadingAnimation}
+                        loop
+                        autoplay
+                        style={{ width: 300, height: 300 }}
+                    />
                     <p className="text-white/70 text-sm">Loading media...</p>
                 </div>
             </div>

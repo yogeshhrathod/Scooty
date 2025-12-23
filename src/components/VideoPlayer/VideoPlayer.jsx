@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
     Play, Pause, Volume2, VolumeX, Maximize, Minimize,
     SkipBack, SkipForward, Settings, Subtitles, ChevronLeft,
@@ -8,6 +8,7 @@ import './VideoPlayer.css';
 import { PlayerOverlay } from './PlayerOverlay';
 import { PlayerControls } from './PlayerControls';
 import { AudioMenu, SubtitleMenu } from './PlayerMenus';
+import { ExternalSubtitleDialog } from './ExternalSubtitleDialog';
 
 // Playback speed options
 const SPEED_OPTIONS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -75,6 +76,11 @@ export const VideoPlayer = ({
     const [subtitleTracks, setSubtitleTracks] = useState([]);
     const [selectedAudioTrack, setSelectedAudioTrack] = useState(null);
     const [selectedSubtitleTrack, setSelectedSubtitleTrack] = useState(null);
+
+    // External subtitle state
+    const [externalSubtitles, setExternalSubtitles] = useState([]);
+    const [selectedExternalSubtitle, setSelectedExternalSubtitle] = useState(null);
+    const [showExternalSubtitleDialog, setShowExternalSubtitleDialog] = useState(false);
 
     // Preview tooltip state
     const [previewTime, setPreviewTime] = useState(null);
@@ -150,36 +156,174 @@ export const VideoPlayer = ({
 
             console.log('[VideoPlayer] Activating subtitles, selected:', selectedSubtitleTrack, 'available tracks:', textTracks.length);
 
+            // Map subtitle track indices to their position in the video.textTracks list
+            // The textTracks order corresponds to the order of <track> elements in the DOM
             for (let i = 0; i < textTracks.length; i++) {
                 const track = textTracks[i];
-                console.log(`[VideoPlayer] Track ${i}: label="${track.label}", mode="${track.mode}"`);
 
-                if (selectedSubtitleTrack !== null) {
-                    // Try multiple matching strategies
-                    const matchingSubtitle = subtitleTracks.find(st => {
-                        // Match by label
-                        if (st.displayName === track.label) return true;
-                        // Match by track index in label
-                        if (track.label.includes(`${st.index}`)) return true;
-                        // Match by position if labels don't work
-                        if (i === subtitleTracks.findIndex(s => s.index === st.index)) return true;
-                        return false;
-                    });
+                // Skip external tracks (they're handled separately)
+                if (track.kind === 'subtitles' && !track.label.includes('External')) {
+                    // Find the corresponding subtitle track by index position
+                    const correspondingTrack = subtitleTracks[i];
 
-                    if (matchingSubtitle && matchingSubtitle.index === selectedSubtitleTrack) {
+                    if (selectedSubtitleTrack !== null && correspondingTrack && correspondingTrack.index === selectedSubtitleTrack) {
                         track.mode = 'showing';
-                        console.log('[VideoPlayer] ✓ Showing subtitle track:', track.label);
+                        console.log('[VideoPlayer] ✓ Showing subtitle track:', i, track.label);
                     } else {
                         track.mode = 'hidden';
                     }
                 } else {
-                    track.mode = 'hidden';
+                    // External tracks or other kinds - hide unless explicitly selected via external subtitle system
+                    if (selectedExternalSubtitle === null) {
+                        track.mode = 'hidden';
+                    }
                 }
             }
         };
 
         activateSubtitles();
-    }, [selectedSubtitleTrack, subtitleTracks]);
+    }, [selectedSubtitleTrack, subtitleTracks, selectedExternalSubtitle]);
+
+    // Handle external subtitle selection - inject into video element
+    useEffect(() => {
+        const video = videoRef.current;
+        if (!video) return;
+
+        // Remove any existing external tracks
+        const existingTracks = video.querySelectorAll('track.external-subtitle');
+        existingTracks.forEach(t => t.remove());
+
+        // If an external subtitle is selected, add it
+        if (selectedExternalSubtitle !== null && externalSubtitles[selectedExternalSubtitle]) {
+            const ext = externalSubtitles[selectedExternalSubtitle];
+            const track = document.createElement('track');
+            track.kind = 'subtitles';
+            track.label = ext.name;
+            track.srclang = 'en';
+            track.src = ext.url;
+            track.default = true;
+            track.className = 'external-subtitle';
+            video.appendChild(track);
+
+            // Wait for track to load and activate it
+            track.addEventListener('load', () => {
+                if (video.textTracks.length > 0) {
+                    // Hide all tracks first
+                    for (let i = 0; i < video.textTracks.length; i++) {
+                        video.textTracks[i].mode = 'hidden';
+                    }
+                    // Show the external track (should be the last one)
+                    video.textTracks[video.textTracks.length - 1].mode = 'showing';
+                }
+            });
+        }
+    }, [selectedExternalSubtitle, externalSubtitles]);
+
+    // Load external subtitle from URL
+    const loadExternalSubtitleUrl = useCallback(async (url, providedDisplayName = null) => {
+        if (!streamBaseUrl) {
+            throw new Error('Stream proxy not available');
+        }
+
+        let subtitleUrl = url;
+        let displayName = providedDisplayName;
+
+        // Check if this is already a proxy URL (from search download)
+        if (!url.startsWith(streamBaseUrl)) {
+            // Use our proxy to fetch and convert the subtitle
+            subtitleUrl = `${streamBaseUrl}/external-subtitle?url=${encodeURIComponent(url)}&start=${seekOffset}`;
+        }
+
+        // Test if the URL is accessible
+        const testResponse = await fetch(subtitleUrl);
+        if (!testResponse.ok) {
+            const errorText = await testResponse.text();
+            throw new Error(errorText || 'Failed to load subtitle');
+        }
+
+        // Extract filename from URL for display name if not provided
+        if (!displayName) {
+            const urlParts = url.split('/');
+            const filename = urlParts[urlParts.length - 1].split('?')[0] || 'External Subtitle';
+            displayName = decodeURIComponent(filename).replace(/\.[^.]+$/, '');
+        }
+
+        // Add to external subtitles list
+        const newSubtitle = {
+            name: displayName,
+            url: subtitleUrl,
+            originalUrl: url
+        };
+
+        setExternalSubtitles(prev => [...prev, newSubtitle]);
+        setSelectedExternalSubtitle(externalSubtitles.length);
+        setSelectedSubtitleTrack(null); // Deselect embedded track
+        setShowExternalSubtitleDialog(false);
+        closeAllMenus();
+    }, [streamBaseUrl, seekOffset, externalSubtitles.length]);
+
+    // Load external subtitle from file content
+    const loadExternalSubtitleFile = useCallback(async (content, filename) => {
+        if (!streamBaseUrl) {
+            throw new Error('Stream proxy not available');
+        }
+
+        // Send content to proxy for parsing
+        const proxyUrl = `${streamBaseUrl}/parse-subtitle?start=${seekOffset}`;
+        const response = await fetch(proxyUrl, {
+            method: 'POST',
+            body: content,
+            headers: {
+                'Content-Type': 'text/plain'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || 'Failed to parse subtitle');
+        }
+
+        const vttContent = await response.text();
+
+        // Create a blob URL for the VTT content
+        const blob = new Blob([vttContent], { type: 'text/vtt' });
+        const blobUrl = URL.createObjectURL(blob);
+
+        // Extract display name from filename
+        const displayName = filename.replace(/\.[^.]+$/, '');
+
+        // Add to external subtitles list
+        const newSubtitle = {
+            name: displayName,
+            url: blobUrl,
+            isBlob: true
+        };
+
+        setExternalSubtitles(prev => [...prev, newSubtitle]);
+        setSelectedExternalSubtitle(externalSubtitles.length);
+        setSelectedSubtitleTrack(null); // Deselect embedded track
+        setShowExternalSubtitleDialog(false);
+        closeAllMenus();
+    }, [streamBaseUrl, seekOffset, externalSubtitles.length]);
+
+    // Handle external subtitle selection
+    const handleSelectExternalSubtitle = useCallback((idx) => {
+        setSelectedExternalSubtitle(idx);
+        if (idx !== null) {
+            setSelectedSubtitleTrack(null); // Deselect embedded when selecting external
+        }
+    }, []);
+
+    // Cleanup blob URLs on unmount
+    useEffect(() => {
+        return () => {
+            externalSubtitles.forEach(sub => {
+                if (sub.isBlob) {
+                    URL.revokeObjectURL(sub.url);
+                }
+            });
+        };
+    }, [externalSubtitles]);
 
     // Close all dropdowns
     const closeAllMenus = () => {
@@ -289,16 +433,25 @@ export const VideoPlayer = ({
                     closeAllMenus();
                     break;
                 case 'c':
-                    if (subtitleTracks.length > 0) {
-                        if (selectedSubtitleTrack !== null) {
+                    if (subtitleTracks.length > 0 || externalSubtitles.length > 0) {
+                        if (selectedSubtitleTrack !== null || selectedExternalSubtitle !== null) {
                             setSelectedSubtitleTrack(null);
+                            setSelectedExternalSubtitle(null);
                             if (onSettingsChange) onSettingsChange({ subtitleTrack: null });
+                        } else if (externalSubtitles.length > 0) {
+                            setSelectedExternalSubtitle(0);
+                            setSelectedSubtitleTrack(null);
                         } else {
                             const firstTrack = subtitleTracks[0]?.index;
                             setSelectedSubtitleTrack(firstTrack);
                             if (onSettingsChange) onSettingsChange({ subtitleTrack: firstTrack });
                         }
                     }
+                    break;
+                case 'u':
+                    // Open external subtitle dialog
+                    e.preventDefault();
+                    setShowExternalSubtitleDialog(true);
                     break;
                 default:
                     if (e.key >= '1' && e.key <= '4') {
@@ -491,14 +644,23 @@ export const VideoPlayer = ({
         setPreviewPosition(e.clientX - rect.left);
     };
 
-    // Video event handlers
+    // Video event handlers - debounce progress callback to reduce store updates
+    const lastProgressCallRef = useRef(0);
+    const PROGRESS_DEBOUNCE_MS = 3000; // Only update store every 3 seconds
+
     const handleTimeUpdate = () => {
         if (videoRef.current && !isSeeking) {
             const time = videoRef.current.currentTime;
             currentTimeRef.current = time;
             setCurrentTime(time);
+
+            // Debounce onProgress callback to reduce store writes
             if (onProgress) {
-                onProgress(isTranscodedStream ? seekOffset + time : time, duration);
+                const now = Date.now();
+                if (now - lastProgressCallRef.current >= PROGRESS_DEBOUNCE_MS) {
+                    lastProgressCallRef.current = now;
+                    onProgress(isTranscodedStream ? seekOffset + time : time, duration);
+                }
             }
         }
     };
@@ -572,6 +734,7 @@ export const VideoPlayer = ({
                 ref={videoRef}
                 className="video-element"
                 src={src}
+                crossOrigin="anonymous"
                 autoPlay={autoPlay}
                 onClick={togglePlay}
                 onDoubleClick={toggleFullscreen}
@@ -640,8 +803,14 @@ export const VideoPlayer = ({
                 selectedSubtitleTrack={selectedSubtitleTrack}
                 onSubtitleTrackChange={(idx) => {
                     setSelectedSubtitleTrack(idx);
+                    setSelectedExternalSubtitle(null); // Deselect external when selecting embedded
                     if (onSettingsChange) onSettingsChange({ subtitleTrack: idx });
                 }}
+
+                externalSubtitles={externalSubtitles}
+                selectedExternalSubtitle={selectedExternalSubtitle}
+                onSelectExternalSubtitle={handleSelectExternalSubtitle}
+                onAddExternalSubtitle={() => setShowExternalSubtitleDialog(true)}
 
                 showAudioMenu={showAudioMenu}
                 setShowAudioMenu={setShowAudioMenu}
@@ -650,6 +819,16 @@ export const VideoPlayer = ({
                 showSpeedMenu={showSpeedMenu}
                 setShowSpeedMenu={setShowSpeedMenu}
                 closeAllMenus={closeAllMenus}
+            />
+
+            {/* External Subtitle Dialog */}
+            <ExternalSubtitleDialog
+                show={showExternalSubtitleDialog}
+                onClose={() => setShowExternalSubtitleDialog(false)}
+                onLoadUrl={loadExternalSubtitleUrl}
+                onLoadFile={loadExternalSubtitleFile}
+                streamBaseUrl={streamBaseUrl}
+                videoTitle={title}
             />
 
         </div>

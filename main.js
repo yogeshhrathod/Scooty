@@ -128,9 +128,15 @@ ipcMain.handle('get-stream-url', () => {
     return `http://localhost:${proxyPort}`;
 });
 
-async function scanDir(dir, depth = 0) {
+async function scanDir(dir, depth = 0, maxDepth = 10) {
     let results = [];
     const indent = '  '.repeat(depth);
+
+    // Prevent excessive recursion depth
+    if (depth > maxDepth) {
+        console.warn(`${indent}[Scan] Max depth (${maxDepth}) reached, skipping: ${dir}`);
+        return results;
+    }
 
     try {
         const list = await fs.promises.readdir(dir, { withFileTypes: true });
@@ -145,7 +151,7 @@ async function scanDir(dir, depth = 0) {
 
                 if (dirent.isDirectory()) {
                     // Recursively scan subdirectories
-                    const nestedFiles = await scanDir(filePath, depth + 1);
+                    const nestedFiles = await scanDir(filePath, depth + 1, maxDepth);
                     results = results.concat(nestedFiles);
                 } else if (dirent.isFile()) {
                     // Check for video extensions
