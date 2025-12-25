@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCOOTY | About The Creator</title>
+    <meta name="description"
+        content="Learn about the mission behind Scooty - The ultimate FTP & Cloud Media Player. Built for speed, designed for anime action.">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://scooty.wesparkvault.com/about.html">
+    <link rel="canonical" href="https://scooty.wesparkvault.com/about.html">
+
+    <meta property="og:title" content="SCOOTY | About The Creator">
+    <meta property="og:description"
+        content="Learn about the mission behind Scooty - The ultimate FTP & Cloud Media Player. Built for speed, designed for anime action.">
+    <meta property="og:image" content="https://scooty.wesparkvault.com/og-image.jpg">
+    <meta property="og:image:type" content="image/jpeg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="645">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://scooty.wesparkvault.com/about.html">
+    <meta property="twitter:title" content="SCOOTY | About The Creator">
+    <meta property="twitter:description"
+        content="Learn about the mission behind Scooty - The ultimate FTP & Cloud Media Player. Built for speed, designed for anime action.">
+    <meta property="twitter:image" content="https://scooty.wesparkvault.com/og-image.jpg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;900&family=Outfit:wght@900&display=swap"
+        rel="stylesheet">
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="stylesheet" href="main.css">
+
+    <style>
+        .mission-stat {
+            font-size: 4rem;
+            font-weight: 900;
+            color: white;
+            line-height: 1;
+        }
+
+        .mission-label {
+            font-size: 1rem;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: 0.5rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        @media (max-width: 968px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+
+            .github-card {
+                margin-top: 3rem;
+                transform: rotate(0deg);
+            }
+        }
+
+        /* NEW GITHUB CARD STYLES */
+        .github-card {
+            background: rgba(10, 10, 10, 0.9);
+            border: 1px solid var(--primary);
+            border-radius: 12px;
+            padding: 2.5rem;
+            box-shadow: 0 0 30px rgba(255, 62, 0, 0.15);
+            backdrop-filter: blur(10px);
+            transform: rotate(-2deg);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .github-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: var(--primary);
+            box-shadow: 0 0 20px var(--primary);
+        }
+
+        .github-card:hover {
+            transform: rotate(0deg) scale(1.02);
+            box-shadow: 0 0 50px rgba(255, 62, 0, 0.3);
+        }
+
+        .gh-header {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .gh-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 2px solid var(--primary);
+            box-shadow: 0 0 20px rgba(255, 62, 0, 0.5);
+            object-fit: cover;
+        }
+
+        .gh-info h3 {
+            font-size: 1.8rem;
+            color: white;
+            margin-bottom: 0.5rem;
+        }
+
+        .gh-info p {
+            font-size: 1rem;
+            color: var(--text-dim);
+            line-height: 1.4;
+        }
+
+        .gh-stats {
+            display: flex;
+            justify-content: space-around;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .gh-stat {
+            text-align: center;
+        }
+
+        .gh-stat .val {
+            display: block;
+            font-size: 2rem;
+            font-weight: 900;
+            color: white;
+        }
+
+        .gh-stat .label {
+            font-size: 0.8rem;
+            color: var(--primary);
+            letter-spacing: 1px;
+        }
+
+        .gh-btn {
+            display: block;
+            width: 100%;
+            padding: 1rem;
+            background: var(--primary);
+            color: white;
+            text-align: center;
+            font-weight: 900;
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            clip-path: polygon(5% 0%, 100% 0%, 95% 100%, 0% 100%);
+            transition: 0.2s;
+        }
+
+        .gh-btn:hover {
+            transform: scale(1.05);
+            color: black;
+            background: white;
+        }
+    </style>
+
+</head>
+
+<body>
+    <div class="speed-lines"></div>
+    <nav class="navbar">
+        <a href="index.html" style="text-decoration: none; color: inherit;">
+            <div class="logo">
+                <img src="logo.png" alt="Scooty Logo" class="logo-img">
+                <span>SCOOTY</span>
+            </div>
+        </a>
+        <div class="nav-actions">
+            <a href="index.html" class="nav-link">HOME</a>
+            <a href="index.html#download" class="btn-action">GET NOW</a>
+        </div>
+    </nav>
+
+    <main>
+        <header class="hero" style="height: 50vh; min-height: 400px;">
+            <div class="hero-visual">
+                <div class="hero-overlay"></div>
+            </div>
+            <div class="hero-content">
+                <h1 class="hero-title glitch" data-text="ABOUT ME">ABOUT ME</h1>
+                <p class="hero-subtitle">The Architect Behind the Engine</p>
+            </div>
+        </header>
+
+        <section class="story-section">
+            <div class="story-container">
+                <div class="story-step">
+                    <div class="story-content">
+                        <h2 class="glitch" data-text="BUILT BY NECESSITY">BUILT BY NECESSITY</h2>
+                        <p>Hi, I'm Yogesh. I didn't start Scooty just to make a faster player. I built it because the
+                            features I needed simply didn't exist elsewhere. I wanted to treat my cloud servers like a
+                            first-class library, but every other player fell short.</p>
+                        <p>What started as a solution to my own daily frustration is now shared with you. I realized if
+                            I was facing this missing piece, others likely were too.</p>
+
+                        <div class="stats-grid">
+                            <div>
+                                <div class="mission-stat">100%</div>
+                                <div class="mission-label">Passion</div>
+                            </div>
+                            <div>
+                                <div class="mission-stat">ZERO</div>
+                                <div class="mission-label">Compromise</div>
+                            </div>
+                            <div>
+                                <div class="mission-stat">CLOUD</div>
+                                <div class="mission-label">Native</div>
+                            </div>
+                        </div>
+
+                        <blockquote class="creator-quote">
+                            "I built the solution I was desperate for. Hopefully, it's the answer you've been looking
+                            for too."
+                        </blockquote>
+                    </div>
+                    <div class="story-visual">
+                        <div class="github-card" id="github-card">
+                            <div class="gh-header">
+                                <img src="logo.png" alt="Profile" id="gh-avatar" class="gh-avatar">
+                                <div class="gh-info">
+                                    <h3 id="gh-name">LOADING...</h3>
+                                    <p id="gh-bio">Establishing secure connection to GitHub...</p>
+                                </div>
+                            </div>
+                            <div class="gh-stats">
+                                <div class="gh-stat">
+                                    <span class="val" id="gh-repos">-</span>
+                                    <span class="label">REPOS</span>
+                                </div>
+                                <div class="gh-stat">
+                                    <span class="val" id="gh-followers">-</span>
+                                    <span class="label">FOLLOWERS</span>
+                                </div>
+                            </div>
+                            <a href="https://github.com/yogeshhrathod" target="_blank" class="gh-btn">VISIT PROFILE</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="download-section" style="padding-bottom: 50px;">
+            <h2 class="section-title glitch" data-text="GET IN TOUCH">GET IN TOUCH</h2>
+            <div class="download-link">
+                <a href="https://github.com/yogeshhrathod" target="_blank" class="dl-btn glitch"
+                    data-text="GITHUB">GITHUB</a>
+                <a href="mailto:hey.yogeshh@gmail.com" class="dl-btn glitch" data-text="EMAIL">EMAIL</a>
+            </div>
+        </section>
+    </main>
+
+    <footer style="padding: 50px; text-align: center; color: var(--text-dim);">
+        <p>&copy; 2025 SCOOTY MEDIA GROUP // BUILT FOR SPEED</p>
+    </footer>
+
+    <script type="module">
+        import { init, trackEvent } from 'https://esm.sh/@aptabase/web';
+
+        // Initialize Aptabase
+        init('A-EU-0940594484');
+        trackEvent('page_view', { domain: window.location.hostname, page: 'about' });
+    </script>
+    <script>
+        // Fetch GitHub Data
+        fetch('https://api.github.com/users/yogeshhrathod')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('gh-name').innerText = data.name || data.login;
+                document.getElementById('gh-bio').innerText = data.bio || 'Building things fast.';
+                document.getElementById('gh-avatar').src = data.avatar_url;
+                document.getElementById('gh-repos').innerText = data.public_repos;
+                document.getElementById('gh-followers').innerText = data.followers;
+            })
+            .catch(error => {
+                console.error('Error fetching GitHub data:', error);
+                document.getElementById('gh-name').innerText = 'Yogesh Rathod';
+                document.getElementById('gh-bio').innerText = 'Data unavailable';
+            });
+    </script>
+    <script src="main.js"></script>
+</body>
+
+</html>

@@ -316,6 +316,22 @@ h3 {
     font-size: 1rem;
 }
 
+.nav-link {
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 900;
+    font-size: 1rem;
+    margin-right: 2rem;
+    position: relative;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: color 0.2s;
+}
+
+.nav-link:hover {
+    color: var(--primary);
+}
+
 .logo {
     display: flex;
     align-items: center;
@@ -637,6 +653,18 @@ h3 {
     font-weight: 900;
     color: var(--primary);
     font-style: italic;
+}
+
+.creator-quote {
+    margin-top: 4rem;
+    padding-left: 2rem;
+    border-left: 4px solid var(--primary);
+    font-size: 1.5rem;
+    font-style: italic;
+    color: white;
+    font-family: 'Outfit', sans-serif;
+    line-height: 1.4;
+    text-transform: uppercase;
 }
 
 .solution-img {
