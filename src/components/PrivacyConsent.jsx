@@ -6,11 +6,11 @@ export function PrivacyConsent() {
     const privacyAccepted = useStore((state) => state.privacyAccepted);
     const acceptPrivacy = useStore((state) => state.acceptPrivacy);
     const location = useLocation();
-    const { trackEvent } = useAnalytics();
+    const { track } = useAnalytics();
 
     const handleAccept = () => {
         acceptPrivacy();
-        trackEvent('privacy_accepted');
+        track('privacy_accepted');
     };
 
     // Don't show if already accepted

@@ -104,7 +104,7 @@ function App() {
 
         for (const source of sources) {
           try {
-            console.log('[App] Restoring FTP config for:', source.host);
+            console.log('[App] Restoring FTP config for:', source.host, source);
             await ftpService.restoreConfig(source);
           } catch (e) {
             console.warn('[App] Failed to restore FTP config:', source.host, e);

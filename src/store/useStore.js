@@ -233,25 +233,18 @@ export const useStore = create(
 
             deleteAllData: async () => {
                 try {
-                    // 1. Clear Zustand Store State
-                    set({
-                        library: [],
-                        folders: [],
-                        ftpSources: [],
-                        history: {},
-                        favorites: [],
-                        isSetupComplete: false, // Reset setup status
-                        privacyAccepted: false,
-                        ignoredPaths: [],
-                    });
-
-                    // 2. Clear IndexedDB
+                    // 1. Clear IndexedDB directly (avoid store updates triggering persist writes)
                     await clear();
 
-                    // 3. Clear LocalStorage
+                    // 2. Clear LocalStorage
                     if (typeof localStorage !== 'undefined') {
                         localStorage.clear();
                     }
+
+                    // 3. Explicitly remove the specific storage key as a fallback
+                    await del('scooty-storage');
+
+                    console.log('[Store] All data nuked. Reloading...');
 
                     // 4. Force Reload to reset memory/state
                     window.location.reload();
