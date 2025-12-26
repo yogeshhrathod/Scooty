@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import {
     Play, Pause, Volume2, VolumeX, Maximize, Minimize,
     SkipBack, SkipForward, Settings, Subtitles, ChevronLeft,
-    Languages, Gauge, RotateCcw, X, Check, Loader2, ChevronDown
+    Languages, Gauge, RotateCcw, X, Check, Loader2, ChevronDown, Cast
 } from 'lucide-react';
 import './VideoPlayer.css';
 import { PlayerOverlay } from './PlayerOverlay';
@@ -69,7 +69,12 @@ export const VideoPlayer = ({
     const [showSpeedMenu, setShowSpeedMenu] = useState(false);
     const [showAudioMenu, setShowAudioMenu] = useState(false);
     const [showSubtitleMenu, setShowSubtitleMenu] = useState(false);
+    const [showCastMenu, setShowCastMenu] = useState(false); // Cast menu state
     const [playbackSpeed, setPlaybackSpeed] = useState(1);
+
+    // Cast state
+    const [castDevices, setCastDevices] = useState([]);
+    const ipcRenderer = window.electron?.ipcRenderer;
 
     // Track state
     const [audioTracks, setAudioTracks] = useState([]);
@@ -394,12 +399,53 @@ export const VideoPlayer = ({
         };
     }, [externalSubtitles]);
 
+    // Cast Discovery
+    useEffect(() => {
+        if (!ipcRenderer) return;
+
+        const handleDevicesUpdate = (event, devices) => {
+            console.log('[VideoPlayer] Cast devices updated:', devices);
+            setCastDevices(devices);
+        };
+
+        ipcRenderer.on('cast-devices-update', handleDevicesUpdate);
+        ipcRenderer.send('cast-scan-start');
+
+        return () => {
+            ipcRenderer.removeListener('cast-devices-update', handleDevicesUpdate);
+            ipcRenderer.send('cast-scan-stop');
+        };
+    }, [ipcRenderer]);
+
+    const handleCast = useCallback(async (device) => {
+        if (!ipcRenderer) return;
+
+        // Use streamUrl (src)
+        // src is usually http://localhost:PORT/stream...
+        // Main process will handle IP substitution
+        try {
+            console.log('[VideoPlayer] Casting to:', device.name);
+            await ipcRenderer.invoke('cast-play', {
+                deviceId: device.id,
+                url: src,
+                title: title,
+                startTime: effectiveCurrentTime
+            });
+            setShowCastMenu(false);
+        } catch (e) {
+            console.error('[VideoPlayer] Cast error:', e);
+            setError('Failed to start casting: ' + e.message);
+        }
+    }, [ipcRenderer, src, title, effectiveCurrentTime]);
+
     // Close all dropdowns
     const closeAllMenus = () => {
         setShowSpeedMenu(false);
         setShowAudioMenu(false);
         setShowSubtitleMenu(false);
+        setShowCastMenu(false);
     };
+
 
     // Handle audio track change - immediately reload stream
     const handleAudioTrackChange = useCallback((trackIndex) => {
@@ -799,7 +845,7 @@ export const VideoPlayer = ({
             }}
         >
             {/* Video Element */}
-            <video
+            < video
                 ref={videoRef}
                 className="video-element"
                 src={src}
@@ -818,17 +864,19 @@ export const VideoPlayer = ({
                 onError={handleError}
             >
                 {/* Subtitle tracks */}
-                {subtitleTracks.map(track => (
-                    <track
-                        key={track.index}
-                        kind="subtitles"
-                        label={track.displayName || `Track ${track.index}`}
-                        srcLang={track.language || 'en'}
-                        src={getSubtitleUrl(track.index)}
-                        default={selectedSubtitleTrack === track.index}
-                    />
-                ))}
-            </video>
+                {
+                    subtitleTracks.map(track => (
+                        <track
+                            key={track.index}
+                            kind="subtitles"
+                            label={track.displayName || `Track ${track.index}`}
+                            srcLang={track.language || 'en'}
+                            src={getSubtitleUrl(track.index)}
+                            default={selectedSubtitleTrack === track.index}
+                        />
+                    ))
+                }
+            </video >
 
             <PlayerOverlay
                 isLoading={isLoading}
@@ -887,6 +935,10 @@ export const VideoPlayer = ({
                 setShowSubtitleMenu={setShowSubtitleMenu}
                 showSpeedMenu={showSpeedMenu}
                 setShowSpeedMenu={setShowSpeedMenu}
+                showCastMenu={showCastMenu}
+                setShowCastMenu={setShowCastMenu}
+                castDevices={castDevices}
+                onCast={handleCast}
                 closeAllMenus={closeAllMenus}
             />
 
@@ -900,7 +952,7 @@ export const VideoPlayer = ({
                 videoTitle={title}
             />
 
-        </div>
+        </div >
     );
 };
 

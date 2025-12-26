@@ -64,6 +64,7 @@ function createWindow() {
 const ftpService = require('./electron/FtpService');
 const streamProxy = require('./electron/StreamProxy');
 const mediaInfoService = require('./electron/MediaInfoService');
+const castService = require('./electron/CastService');
 
 // Start Proxy
 let proxyPort = null;
@@ -242,6 +243,37 @@ ipcMain.handle('window-close', () => {
 
 ipcMain.handle('window-is-maximized', () => {
     return mainWindow.isMaximized();
+});
+
+// Cast Service Handlers
+ipcMain.on('cast-scan-start', (event) => {
+    log.info('[Main] Starting cast scan');
+    castService.startScan((devices) => {
+        if (mainWindow) {
+            mainWindow.webContents.send('cast-devices-update', devices);
+        }
+    });
+});
+
+ipcMain.on('cast-scan-stop', () => {
+    log.info('[Main] Stopping cast scan');
+    castService.stopScan();
+});
+
+ipcMain.handle('cast-play', async (event, { deviceId, url, title, startTime }) => {
+    log.info(`[Main] Requesting cast to ${deviceId}: ${title}`);
+    try {
+        await castService.play(deviceId, url, title, startTime);
+        return { success: true };
+    } catch (e) {
+        log.error('[Main] Cast failed:', e);
+        throw e;
+    }
+});
+
+ipcMain.handle('cast-stop', async (event, { deviceId }) => {
+    castService.stop(deviceId);
+    return { success: true };
 });
 
 app.on('ready', createWindow);

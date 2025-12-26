@@ -686,8 +686,12 @@ class StreamProxy {
     async start() {
         try {
             this.port = await portfinder.getPortPromise({ port: 8000, stopPort: 9000 });
-            this.server = this.app.listen(this.port, () => {
+            // Host 0.0.0.0 is crucial for casting devices to access the stream from LAN
+            this.server = this.app.listen(this.port, '0.0.0.0', () => {
+                const ip = require('ip');
+                const localIp = ip.address();
                 console.log(`[StreamProxy] running on http://localhost:${this.port}`);
+                console.log(`[StreamProxy] LAN Access: http://${localIp}:${this.port}`);
             });
             return this.port;
         } catch (err) {

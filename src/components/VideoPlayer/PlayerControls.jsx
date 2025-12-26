@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import {
     Play, Pause, Volume2, VolumeX, Maximize, Minimize,
-    SkipBack, SkipForward, ChevronLeft, Gauge, Check, ChevronDown
+    SkipBack, SkipForward, ChevronLeft, Gauge, Check, ChevronDown, Cast
 } from 'lucide-react';
 import { AudioMenu, SubtitleMenu } from './PlayerMenus';
 
@@ -58,6 +58,10 @@ export const PlayerControls = ({
     setShowSubtitleMenu,
     showSpeedMenu,
     setShowSpeedMenu,
+    showCastMenu,
+    setShowCastMenu,
+    castDevices = [],
+    onCast,
     closeAllMenus
 }) => {
     const progressRef = useRef(null);
@@ -249,6 +253,49 @@ export const PlayerControls = ({
                                 setShowSubtitleMenu(false);
                             } : undefined}
                         />
+
+                        {/* Cast Menu */}
+                        <div className="dropdown-wrapper">
+                            <button
+                                className={`control-btn dropdown-btn ${showCastMenu ? 'active' : ''}`}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowCastMenu(!showCastMenu);
+                                    setShowAudioMenu(false);
+                                    setShowSubtitleMenu(false);
+                                    setShowSpeedMenu(false);
+                                }}
+                                title="Cast to Device"
+                            >
+                                <Cast size={20} />
+                            </button>
+                            {showCastMenu && (
+                                <div className="dropdown-menu cast-menu" style={{ width: '200px' }}>
+                                    <div className="dropdown-header">Cast to Device</div>
+                                    {castDevices.length === 0 ? (
+                                        <div className="dropdown-item" style={{ cursor: 'default', opacity: 0.7 }}>
+                                            <span>Scanning...</span>
+                                        </div>
+                                    ) : (
+                                        castDevices.map(device => (
+                                            <button
+                                                key={device.id}
+                                                className="dropdown-item"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onCast(device);
+                                                }}
+                                            >
+                                                <span>{device.name}</span>
+                                                <span style={{ fontSize: '10px', opacity: 0.5, marginLeft: 'auto' }}>
+                                                    {device.type === 'cast' ? 'Google' : 'Apple'}
+                                                </span>
+                                            </button>
+                                        ))
+                                    )}
+                                </div>
+                            )}
+                        </div>
 
                         {/* Fullscreen */}
                         <button className="control-btn" onClick={onFullscreenToggle} title="Fullscreen (f)">
