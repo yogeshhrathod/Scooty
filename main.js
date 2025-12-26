@@ -4,6 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const { autoUpdater } = require('electron-updater');
 const log = require('electron-log');
+const { Worker } = require('worker_threads');
 
 // Configure logging
 log.transports.file.level = 'info';
@@ -275,6 +276,75 @@ ipcMain.handle('cast-stop', async (event, { deviceId }) => {
     castService.stop(deviceId);
     return { success: true };
 });
+
+// Background Library Resync
+ipcMain.handle('start-resync', async (event, { folders, ftpSources }) => {
+    log.info('[Resync] Starting background library resync...');
+
+    // Scan Local Folders
+    if (folders && Array.isArray(folders)) {
+        for (const folderPath of folders) {
+            log.info(`[Resync] Checking local folder: ${folderPath}`);
+            // Check existence first
+            if (fs.existsSync(folderPath)) {
+                log.info(`[Resync] Folder exists, spawning worker for: ${folderPath}`);
+                spawnScanWorker('scan-local', { path: folderPath });
+            } else {
+                log.warn(`[Resync] Folder not found, skipping: ${folderPath}`);
+            }
+        }
+    }
+
+    // Scan FTP Sources
+    if (ftpSources && Array.isArray(ftpSources)) {
+        for (const config of ftpSources) {
+            log.info(`[Resync] Checking FTP source: ${config.host}`);
+            try {
+                // Quick connectivity check
+                await ftpService.connect(config);
+                log.info(`[Resync] FTP connected, spawning worker for: ${config.host}`);
+                spawnScanWorker('scan-ftp', { config });
+            } catch (e) {
+                log.warn(`[Resync] FTP connection failed for ${config.host}, skipping. Error: ${e.message}`);
+            }
+        }
+    }
+
+    return { started: true };
+});
+
+function spawnScanWorker(task, data) {
+    const workerPath = path.join(__dirname, 'electron/workers/scanWorker.js');
+    const worker = new Worker(workerPath, {
+        workerData: { task, data }
+    });
+
+    worker.on('message', (msg) => {
+        if (msg.type === 'log') {
+            log.info(`[Worker] ${msg.message}`);
+        } else if (msg.type === 'result') {
+            log.info(`[Worker] Scan complete for ${task} (${msg.data.length} items)`);
+            if (mainWindow) {
+                mainWindow.webContents.send('resync-complete', {
+                    sourceType: task === 'scan-local' ? 'local' : 'ftp',
+                    sourceId: data.config ? data.config.id : null,
+                    folder: data.path,
+                    files: msg.data
+                });
+            }
+        } else if (msg.type === 'error') {
+            log.error(`[Worker] Error: ${msg.error}`);
+        }
+    });
+
+    worker.on('error', (err) => {
+        log.error(`[Worker] Worker error: ${err}`);
+    });
+
+    worker.on('exit', (code) => {
+        if (code !== 0) log.error(`[Worker] Worker stopped with exit code ${code}`);
+    });
+}
 
 app.on('ready', createWindow);
 

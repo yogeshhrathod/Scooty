@@ -118,6 +118,50 @@ function App() {
     restoreFtpConfigs();
   }, [hasHydrated]);
 
+  // Background Library Resync
+  useEffect(() => {
+    // Only run if hydrated and electron is available
+    if (!hasHydrated || !window.electron) return;
+
+    const startResync = async () => {
+      const { folders, ftpSources } = useStore.getState();
+      // Don't sync if no sources
+      if ((!folders || folders.length === 0) && (!ftpSources || ftpSources.length === 0)) return;
+
+      console.log('[App] Triggering background library resync...');
+      await window.electron.ipcRenderer.invoke('start-resync', {
+        folders: folders || [],
+        ftpSources: ftpSources || []
+      });
+    };
+
+    const handleResyncComplete = (filesData) => {
+      console.log('[App] Background scan complete:', filesData);
+      if (filesData.files && filesData.files.length > 0) {
+        const { addToLibrary } = useStore.getState();
+
+        // Enrich files with source info so they can be managed
+        const enrichedFiles = filesData.files.map(f => ({
+          ...f,
+          source: filesData.sourceType,
+          sourceId: filesData.sourceId || (filesData.sourceType === 'local' ? filesData.folder : undefined)
+        }));
+
+        addToLibrary(enrichedFiles);
+      }
+    };
+
+    // Set up listener
+    window.electron.ipcRenderer.on('resync-complete', handleResyncComplete);
+
+    // Trigger
+    startResync();
+
+    return () => {
+      window.electron.ipcRenderer.removeListener('resync-complete', handleResyncComplete);
+    };
+  }, [hasHydrated]);
+
   // Handle splash screen visibility
   useEffect(() => {
     if (isReady) {
